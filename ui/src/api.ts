@@ -28,6 +28,9 @@ export const api = {
   revokeToken: (tokenId: string) => request('DELETE', `/tokens/${tokenId}`),
   connections: () => request('GET', '/connections'),
   logs: () => request('GET', '/logs'),
+  adminUsers: () => request('GET', '/admin/users'),
+  adminSetBlocked: (userId: string, blocked: boolean) =>
+    request('POST', `/admin/users/${userId}/${blocked ? 'block' : 'unblock'}`),
 };
 
 export function saveJwt(token: string): void {

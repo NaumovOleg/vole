@@ -4,7 +4,7 @@ import Dashboard from './Dashboard';
 import { api, clearJwt } from './api';
 
 export default function App() {
-  const [user, setUser] = useState<{ userId: string; identifier: string } | null | undefined>(undefined);
+  const [user, setUser] = useState<{ userId: string; identifier: string; role?: string } | null | undefined>(undefined);
 
   useEffect(() => {
     if (!localStorage.getItem('vole_jwt')) {
@@ -13,7 +13,7 @@ export default function App() {
     }
     api
       .me()
-      .then((d) => setUser({ userId: d.userId, identifier: d.identifier }))
+      .then((d) => setUser({ userId: d.userId, identifier: d.identifier, role: d.role }))
       .catch(() => {
         clearJwt();
         setUser(null);

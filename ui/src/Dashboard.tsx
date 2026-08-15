@@ -24,31 +24,46 @@ interface Log {
   time?: number;
 }
 
+interface AdminUser {
+  userId: string;
+  identifier: string;
+  blocked: boolean;
+  createdAt: number;
+}
+
 export default function Dashboard({
   user,
   onLogout,
 }: {
-  user: { userId: string; identifier: string };
+  user: { userId: string; identifier: string; role?: string };
   onLogout: () => void;
 }) {
   const [tokens, setTokens] = useState<Token[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [logs, setLogs] = useState<Log[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [freshToken, setFreshToken] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const isAdmin = user.role === 'admin';
 
   const load = useCallback(async () => {
     try {
-      const [t, c, l] = await Promise.all([api.listTokens(), api.connections(), api.logs()]);
+      const [t, c, l, a] = await Promise.all([
+        api.listTokens(),
+        api.connections(),
+        api.logs(),
+        isAdmin ? api.adminUsers() : Promise.resolve({ users: [] }),
+      ]);
       setTokens(t.tokens ?? []);
       setConnections(c.connections ?? []);
       setLogs(l.logs ?? []);
+      setUsers(a.users ?? []);
       setError('');
     } catch (err: any) {
       setError(err.message ?? String(err));
     }
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     void load();
@@ -80,6 +95,18 @@ export default function Dashboard({
       await load();
     } catch (err: any) {
       setError(err.message ?? String(err));
+    }
+  }
+
+  async function setBlocked(u: AdminUser, blocked: boolean) {
+    setBusy(true);
+    try {
+      await api.adminSetBlocked(u.userId, blocked);
+      await load();
+    } catch (err: any) {
+      setError(err.message ?? String(err));
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -174,6 +201,44 @@ export default function Dashboard({
           </table>
         )}
       </section>
+
+      {isAdmin && (
+        <section>
+          <h2>Users</h2>
+          {users.length === 0 ? (
+            <p className="empty">No users yet.</p>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Identifier</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.userId}>
+                    <td>{u.identifier}</td>
+                    <td>
+                      <span className={`status ${u.blocked ? 'blocked' : 'active'}`}>
+                        {u.blocked ? 'blocked' : 'active'}
+                      </span>
+                    </td>
+                    <td title={fullTime(u.createdAt)}>{relativeTime(u.createdAt)}</td>
+                    <td>
+                      <button className="small" disabled={busy} onClick={() => setBlocked(u, !u.blocked)}>
+                        {u.blocked ? 'Unblock' : 'Block'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+      )}
 
       <section>
         <h2>Request logs</h2>
