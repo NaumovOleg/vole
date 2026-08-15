@@ -25,6 +25,7 @@ export function launchTcp(port: number): Promise<TunnelHandle> {
           send: (n, dataB64) => void session.sendData(n, dataB64),
           onClose: () => console.error(`[tcp:${port}] tunnel closed`),
         });
+        socket.on('error', (err) => console.error(`[tcp:${port}] local socket error: ${err.message}`));
         resolve({
           url,
           close: async () => {

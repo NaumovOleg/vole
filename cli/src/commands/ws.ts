@@ -40,7 +40,7 @@ export function launchWs(port: number): Promise<TunnelHandle> {
           },
         });
       };
-      localWs.onerror = () => reject(new Error(`no local WebSocket server on port ${port}`));
+      localWs.onerror = () => reject(new Error(`local port ${port} is not listening`));
     });
   });
 }

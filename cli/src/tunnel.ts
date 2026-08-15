@@ -18,6 +18,7 @@ export interface TunnelOptions {
   token: string;
   type: 'http' | 'tcp' | 'ws';
   localPort: number;
+  readyTimeoutMs?: number;
   onRequest?: (request: HttpRequestPayload, reply: (resp: HttpResponsePayload) => Promise<void>) => Promise<void>;
   onData?: (n: number, dataB64: string) => void;
 }
@@ -28,6 +29,7 @@ export class TunnelSession {
   private writeQueue: Promise<void> = Promise.resolve();
   private chunks = new Map<string, Map<number, string>>();
   private openResolve: ((t: { subdomain: string; url: string }) => void) | undefined;
+  private openReject: ((err: Error) => void) | undefined;
   private readonly opts: TunnelOptions;
   readonly openPromise: Promise<{ subdomain: string; url: string }>;
   subdomain: string | undefined;
@@ -35,9 +37,15 @@ export class TunnelSession {
   constructor(opts: TunnelOptions) {
     this.opts = opts;
     this.ws = new WebSocket(`${opts.server.replace(/^http/, 'ws')}?token=${encodeURIComponent(opts.token)}`);
-    this.openPromise = new Promise((resolve) => {
+    this.openPromise = new Promise((resolve, reject) => {
       this.openResolve = resolve;
+      this.openReject = reject;
     });
+
+    const readyTimeout = setTimeout(() => {
+      this.openReject?.(new Error(`cannot reach ${opts.server} — check your network or config`));
+    }, opts.readyTimeoutMs ?? 15_000);
+    this.openPromise.finally(() => clearTimeout(readyTimeout)).catch(() => {});
 
     this.ws.onopen = () => {
       this.send(helloFrame(PROTOCOL_VERSION));
@@ -45,17 +53,23 @@ export class TunnelSession {
     };
 
     this.ws.onmessage = (ev: any) => {
-      const frame = parseFrame(String(ev.data));
+      let frame: Frame;
+      try {
+        frame = parseFrame(String(ev.data));
+      } catch {
+        return;
+      }
       void this.dispatch(frame);
     };
 
     this.ws.onclose = () => {
       this.stopHeartbeat();
+      this.openReject?.(new Error(`connection to ${opts.server} closed`));
       console.error('connection closed');
-      process.exit(1);
     };
 
     this.ws.onerror = (err: any) => {
+      this.openReject?.(new Error(`cannot reach ${opts.server} — check your network or config`));
       console.error('connection error:', err?.message ?? err);
     };
   }
@@ -95,9 +109,12 @@ export class TunnelSession {
         list.set(d.n, d.data);
         break;
       }
-      case 'error':
-        console.error(`server error: ${frame.d?.error}`);
+      case 'error': {
+        const message = frame.d?.error ?? 'server error';
+        this.openReject?.(new Error(message));
+        console.error(`server error: ${message}`);
         break;
+      }
       default:
         break;
     }

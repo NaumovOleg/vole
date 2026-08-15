@@ -49,10 +49,15 @@ function runTunnels(): void {
     });
   }
   manager.start();
-  process.on('SIGINT', async () => {
-    await manager.closeAll();
-    process.exit(0);
-  });
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+
+  function shutdown(): void {
+    void manager.closeAll().then(() => {
+      console.log(`closed ${manager.count()} tunnel(s)`);
+      process.exit(0);
+    });
+  }
 }
 
 function tokenOk(): boolean {

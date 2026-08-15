@@ -22,6 +22,7 @@ vole authtoken <token> [wss-server-url]   # save token (+ optional WS server URL
 vole http <port>                          # open HTTP tunnel to localhost:<port>
 vole tcp <port>                           # bridge a TCP port to a local server
 vole ws <port>                            # proxy WebSocket messages to a local server
+vole http 3000 tcp 5000 ws 8080           # several tunnels in one process
 ```
 
 Remote side:
@@ -33,6 +34,14 @@ websocat wss://<server-host>/dev?tunnel=<subdomain>
 # ws: attach as a WebSocket client
 new WebSocket('wss://<server-host>/dev?tunnel=<subdomain>')
 ```
+
+## Exit codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Clean shutdown (Ctrl+C / SIGTERM) |
+| 1 | Runtime failure (network, local port down, tunnel rejected) |
+| 2 | Usage / config error (no or bad token, malformed args) |
 
 ## Config
 
