@@ -3,8 +3,30 @@ import { TunnelManager, type TunnelSpec } from './manager.js';
 import { launchHttp, httpHints } from './commands/http.js';
 import { launchTcp, tcpHints } from './commands/tcp.js';
 import { launchWs, wsHints } from './commands/ws.js';
+import { voleServer } from './session.js';
 
 type Spec = TunnelSpec<Spec>;
+
+const CYAN = '\x1b[36m';
+const GREEN = '\x1b[32m';
+const DIM = '\x1b[2m';
+const RESET = '\x1b[0m';
+
+const LOGO = [
+  '██╗   ██╗  ██████╗  ██╗      ███████╗',
+  '██║   ██║ ██╔═══██╗ ██║      ██╔════╝',
+  '██║   ██║ ██║   ██║ ██║      █████╗  ',
+  '╚██╗ ██╔╝ ██║   ██║ ██║      ██╔══╝  ',
+  ' ╚████╔╝  ╚██████╔╝ ███████╗ ███████╗',
+  '  ╚═══╝    ╚═════╝  ╚══════╝ ╚══════╝',
+];
+
+function banner(): void {
+  console.clear();
+  console.log(`${CYAN}${LOGO.join('\n')}${RESET}`);
+  console.log(`\n${DIM}  self-hosted tunnels · server ${voleServer()}${RESET}`);
+  console.log(`${DIM}  type 'help' for commands, Ctrl+C or 'exit' to quit${RESET}\n`);
+}
 
 export type Command =
   | { action: 'open'; kind: 'http' | 'tcp' | 'ws'; port: number }
@@ -56,6 +78,8 @@ export function startRepl(): void {
   });
   rl.on('close', () => shutdown(manager));
   rl.on('SIGINT', () => shutdown(manager));
+  console.clear();
+  banner();
   rl.prompt();
 }
 
@@ -71,8 +95,8 @@ async function handleCommand(manager: TunnelManager<Spec>, cmd: Command): Promis
         port: cmd.port,
         launch: () => launch(cmd.port),
         onReady: (id, handle) => {
-          console.log(`Vole ready: ${handle.url}`);
-          for (const h of hints(handle.url, cmd.port)) console.log(h);
+          console.log(`${GREEN}> ${handle.url}${RESET}${DIM} → http://localhost:${cmd.port}${RESET}`);
+          for (const h of hints(handle.url, cmd.port)) console.log(`${DIM}  ${h}${RESET}`);
         },
         onError: (id, err) => console.error(`[${id}] error: ${err.message}`),
       });

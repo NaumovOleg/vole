@@ -46,8 +46,8 @@ function runTunnels(): void {
       port,
       launch: () => launch(port),
       onReady: (id, handle) => {
-        console.log(`Vole ready: ${handle.url}`);
-        for (const h of hints(handle.url, port)) console.log(h);
+        console.log(`\x1b[32m> ${handle.url}\x1b[0m\x1b[2m → http://localhost:${port}\x1b[0m`);
+        for (const h of hints(handle.url, port)) console.log(`\x1b[2m  ${h}\x1b[0m`);
       },
       onError: (id, err) => console.error(`[${id}] error: ${err.message}`),
     });
