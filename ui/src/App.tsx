@@ -11,17 +11,21 @@ export default function App() {
       setUser(null);
       return;
     }
-    api
+    void loadMe();
+  }, []);
+
+  function loadMe() {
+    return api
       .me()
       .then((d) => setUser({ userId: d.userId, identifier: d.identifier, role: d.role }))
       .catch(() => {
         clearJwt();
         setUser(null);
       });
-  }, []);
+  }
 
   if (user === undefined) return <div className="app-loader">Loading…</div>;
-  if (user === null) return <AuthScreen onAuthed={(u) => setUser(u)} />;
+  if (user === null) return <AuthScreen onAuthed={loadMe} />;
   return (
     <Dashboard
       user={user}

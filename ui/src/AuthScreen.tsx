@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api, saveJwt } from './api';
 
-export default function AuthScreen({ onAuthed }: { onAuthed: (user: { userId: string; identifier: string }) => void }) {
+export default function AuthScreen({ onAuthed }: { onAuthed: () => void }) {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -23,7 +23,7 @@ export default function AuthScreen({ onAuthed }: { onAuthed: (user: { userId: st
       }
       const data = await fn(identifier, password);
       saveJwt(data.token);
-      onAuthed({ userId: data.userId, identifier: data.identifier });
+      onAuthed();
     } catch (err: any) {
       setError(err.message ?? String(err));
     } finally {
