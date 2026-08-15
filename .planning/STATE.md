@@ -3,14 +3,14 @@
 ## Project Reference
 
 - **Core value:** A solo developer runs `vole http 3000`, receives a public URL, and HTTP requests to that URL reach their local server — pure serverless AWS, no containers.
-- **Current focus:** Phase 5 (TCP & WS Tunnels) — code done, integration pending user deploy.
+- **Current focus:** Phase 6 (CLI Multi-Tunnel & Polish) — code done, integration pending user deploy.
 
 ## Current Position
 
-**Phase:** 5 — TCP & WS Tunnels
-**Plan:** 05-04 — complete (deploy + integration pending user)
-**Status:** Phase done; ready for `/gsd:plan-phase 6`
-**Progress:** [█████░░░░░░░░░░░░░░░] 5/10 phases (code complete, deploy pending)
+**Phase:** 6 — CLI Multi-Tunnel & Polish
+**Plan:** 06-02 — complete (deploy + integration pending user)
+**Status:** Phase done; ready for `/gsd:plan-phase 7`
+**Progress:** [██████░░░░░░░░░░░░░░] 6/10 phases (code complete, deploy pending)
 
 ## Performance Metrics
 
@@ -19,7 +19,7 @@
 | Requirements | 36 v1 |
 | Phases | 10 |
 | Coverage | 36/36 mapped |
-| Plans complete | 16 |
+| Plans complete | 18 |
 
 ## Accumulated Context
 
@@ -57,6 +57,9 @@
 - Subdomains: 7 hex chars of uuid + unix-seconds as digits a-j (0-9→a-j) — monotonic time ~guarantees
   uniqueness, no lookup/loop; CAS put as rare-collision guard (error frame)
 - CLI byte bridge: ByteBridge (tcp, socket) / WsBridge (ws, message-level); seq'd base64 data frames
+- Multi-tunnel: TunnelManager (launch factories → TunnelHandle{url, close}; per-tunnel failure isolation);
+  `vole http 3000 tcp 5000 ws 8080` one process; TunnelSession ready timeout 15s (openPromise rejects)
+- Exit codes: 0 clean (SIGINT/SIGTERM → closeAll), 1 runtime, 2 usage/config; errors.ts formatter
 
 ### Technical Constraints
 
@@ -75,8 +78,8 @@
 
 ## Session Continuity
 
-**Last session:** 2026-08-15 — Phases 1-5 planned and executed (foundation, auth, WS control plane, HTTP tunnel E2E: relay + CLI, TCP & WS tunnels); code synth-verified, integration pending user deploy.
+**Last session:** 2026-08-15 — Phases 1-6 planned and executed (foundation, auth, WS control plane, HTTP tunnel E2E, TCP & WS tunnels, CLI multi-tunnel & polish); code synth-verified, integration pending user deploy.
 
 **Next session commands:**
-1. `/gsd:plan-phase 6` — CLI Multi-Tunnel & Polish
+1. `/gsd:plan-phase 7` — Dashboard API
 2. `/gsd:progress` — current state

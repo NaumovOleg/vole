@@ -172,7 +172,7 @@ backward success criteria.
 | 3 - WS Control Plane | Complete (code) |
 | 4 - HTTP Tunnel End-to-End | Complete (code) |
 | 5 - TCP & WS Tunnels | Complete (code) |
-| 6 - CLI Multi-Tunnel & Polish | Pending |
+| 6 - CLI Multi-Tunnel & Polish | Complete (code) |
 | 7 - Dashboard API | Pending |
 | 8 - Dashboard UI | Pending |
 | 9 - Admin Panel | Pending |
