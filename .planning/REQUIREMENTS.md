@@ -79,6 +79,47 @@ containers.
 | INFRA-04 | Deploy script for UI (build → upload S3 → invalidate) | One command |
 | INFRA-05 | Route 53 (manual, documented) | Owner instructions in README |
 
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| INFRA-01 | 1 | Pending |
+| INFRA-03 | 1 | Pending |
+| AUTH-01 | 2 | Pending |
+| AUTH-02 | 2 | Pending |
+| AUTH-03 | 2 | Pending |
+| AUTH-04 | 2 | Pending |
+| AUTH-05 | 2 | Pending |
+| CORE-01 | 3 | Pending |
+| CORE-06 | 3 | Pending |
+| PROTO-01 | 3 | Pending |
+| PROTO-03 | 3 | Pending |
+| CORE-02 | 4 | Pending |
+| CORE-03 | 4 | Pending |
+| CORE-04 | 4 | Pending |
+| CORE-05 | 4 | Pending |
+| CLI-01 | 4 | Pending |
+| CLI-02 | 4 | Pending |
+| CLI-03 | 4 | Pending |
+| INFRA-02 | 4 | Pending |
+| PROTO-02 | 4 | Pending |
+| PROTO-04 | 4 | Pending |
+| CLI-04 | 5 | Pending |
+| CLI-05 | 5 | Pending |
+| CLI-06 | 6 | Pending |
+| CLI-07 | 6 | Pending |
+| DASH-06 | 7 | Pending |
+| DASH-01 | 8 | Pending |
+| DASH-02 | 8 | Pending |
+| DASH-03 | 8 | Pending |
+| DASH-04 | 8 | Pending |
+| DASH-05 | 8 | Pending |
+| ADMIN-01 | 9 | Pending |
+| ADMIN-02 | 9 | Pending |
+| ADMIN-03 | 9 | Pending |
+| INFRA-04 | 10 | Pending |
+| INFRA-05 | 10 | Pending |
+
 ## v2 (Deferred)
 
 - Auto-reconnect in CLI
