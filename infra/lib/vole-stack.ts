@@ -8,6 +8,8 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 
 export class VoleStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -19,6 +21,10 @@ export class VoleStack extends Stack {
       partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: RemovalPolicy.DESTROY,
+    });
+    usersTable.addGlobalSecondaryIndex({
+      indexName: 'identifierIndex',
+      partitionKey: { name: 'identifier', type: dynamodb.AttributeType.STRING },
     });
 
     const tokensTable = new dynamodb.Table(this, 'TokensTable', {
@@ -60,29 +66,45 @@ export class VoleStack extends Stack {
       LOGS_TABLE: logsTable.tableName,
     };
 
-    const wsHandler = new lambda.Function(this, 'WsHandler', {
-      runtime: lambda.Runtime.NODEJS_22_X,
-      code: lambda.Code.fromAsset('lib/lambdas/ws-handler'),
-      handler: 'index.handler',
-      environment: commonEnv,
-      timeout: Duration.seconds(30),
+    const jwtSecret = new secretsmanager.Secret(this, 'JwtSecret', {
+      generateSecretString: {
+        secretStringTemplate: '{}',
+        generateStringKey: 'jwt',
+        excludePunctuation: true,
+      },
     });
 
-    const relayHandler = new lambda.Function(this, 'RelayHandler', {
+    const wsHandler = new NodejsFunction(this, 'WsHandler', {
       runtime: lambda.Runtime.NODEJS_22_X,
-      code: lambda.Code.fromAsset('lib/lambdas/relay-handler'),
-      handler: 'index.handler',
+      entry: 'lib/lambdas/ws-handler/index.ts',
+      handler: 'handler',
+      environment: commonEnv,
+      timeout: Duration.seconds(30),
+      bundling: { externalModules: ['@aws-sdk/*'] },
+    });
+
+    const relayHandler = new NodejsFunction(this, 'RelayHandler', {
+      runtime: lambda.Runtime.NODEJS_22_X,
+      entry: 'lib/lambdas/relay-handler/index.ts',
+      handler: 'handler',
       environment: commonEnv,
       timeout: Duration.minutes(15),
+      bundling: { externalModules: ['@aws-sdk/*'] },
     });
 
-    const authHandler = new lambda.Function(this, 'AuthHandler', {
+    const authHandler = new NodejsFunction(this, 'AuthHandler', {
       runtime: lambda.Runtime.NODEJS_22_X,
-      code: lambda.Code.fromAsset('lib/lambdas/auth-handler'),
-      handler: 'index.handler',
-      environment: commonEnv,
+      entry: 'lib/lambdas/auth-handler/index.ts',
+      handler: 'handler',
+      environment: {
+        ...commonEnv,
+        JWT_SECRET_ARN: jwtSecret.secretArn,
+      },
       timeout: Duration.seconds(30),
+      bundling: { externalModules: ['@aws-sdk/*'] },
     });
+
+    jwtSecret.grantRead(authHandler);
 
     for (const table of [usersTable, tokensTable, connectionsTable, tunnelsTable, logsTable]) {
       table.grantReadWriteData(wsHandler);
@@ -120,6 +142,21 @@ export class VoleStack extends Stack {
       path: '/health',
       methods: [apigwv2.HttpMethod.GET],
       integration: new HttpLambdaIntegration('HealthIntegration', authHandler),
+    });
+    httpApi.addRoutes({
+      path: '/auth/register',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new HttpLambdaIntegration('RegisterIntegration', authHandler),
+    });
+    httpApi.addRoutes({
+      path: '/auth/login',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new HttpLambdaIntegration('LoginIntegration', authHandler),
+    });
+    httpApi.addRoutes({
+      path: '/auth/me',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new HttpLambdaIntegration('MeIntegration', authHandler),
     });
 
     const httpStage = new apigwv2.HttpStage(this, 'HttpStage', {
