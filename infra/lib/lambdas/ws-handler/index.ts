@@ -340,6 +340,11 @@ async function openTunnel(client: ApiGatewayManagementApiClient, connectionId: s
     await safePost(client, connectionId, encodeFrame('error', frame.id, { error: 'connection not registered' }));
     return;
   }
+  const user = await doc.send(new GetCommand({ TableName: USERS_TABLE, Key: { userId } }));
+  if (user.Item?.blocked) {
+    await safePost(client, connectionId, encodeFrame('error', frame.id, { error: 'account blocked' }));
+    return;
+  }
   const type = frame.d?.type;
   const localPort = frame.d?.localPort;
   if (!['http', 'tcp', 'ws'].includes(type) || typeof localPort !== 'number') {

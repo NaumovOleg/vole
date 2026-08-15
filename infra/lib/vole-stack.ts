@@ -107,6 +107,7 @@ export class VoleStack extends Stack {
       environment: {
         ...commonEnv,
         JWT_SECRET_ARN: jwtSecret.secretArn,
+        ADMIN_IDENTIFIERS: process.env.ADMIN_IDENTIFIERS ?? 'admin@vole.sh',
       },
       timeout: Duration.seconds(30),
       bundling: { externalModules: ['@aws-sdk/*'] },
@@ -136,6 +137,7 @@ export class VoleStack extends Stack {
 
     webSocketApi.grantManageConnections(wsHandler);
     webSocketApi.grantManageConnections(relayHandler);
+    webSocketApi.grantManageConnections(authHandler);
 
     const relayUrl = new lambda.FunctionUrl(this, 'RelayFunctionUrl', {
       function: relayHandler,

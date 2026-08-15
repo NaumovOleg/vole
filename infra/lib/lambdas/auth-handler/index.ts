@@ -1,8 +1,19 @@
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, QueryCommand, GetCommand, PutCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  QueryCommand,
+  GetCommand,
+  PutCommand,
+  UpdateCommand,
+  DeleteCommand,
+  BatchWriteCommand,
+  ScanCommand,
+} from '@aws-sdk/lib-dynamodb';
+import { ApiGatewayManagementApiClient, DeleteConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi';
 import { randomUUID } from 'node:crypto';
 import { listConnections, logSummary } from './dashboard';
+import { isAdmin, buildUserList, adminRevokePlan } from './admin';
 import {
   hashPassword,
   verifyPassword,
@@ -22,6 +33,8 @@ const USERS_TABLE = process.env.USERS_TABLE!;
 const TOKENS_TABLE = process.env.TOKENS_TABLE!;
 const TUNNELS_TABLE = process.env.TUNNELS_TABLE!;
 const LOGS_TABLE = process.env.LOGS_TABLE!;
+const CONNECTIONS_TABLE = process.env.CONNECTIONS_TABLE!;
+const ADMIN_IDENTIFIERS = process.env.ADMIN_IDENTIFIERS ?? '';
 
 let jwtSecretPromise: Promise<string> | undefined;
 function getJwtSecret(): Promise<string> {
@@ -55,9 +68,19 @@ export async function handler(event: any): Promise<any> {
         return await listConnectionsRoute(event);
       case 'GET /logs':
         return await listLogs(event);
+      case 'GET /admin/users':
+        return await listUsers(event);
       default:
         if (method === 'DELETE' && path.startsWith('/tokens/')) {
           return await revokeToken(event, path);
+        }
+        if (method === 'POST' && path.startsWith('/admin/users/')) {
+          if (path.endsWith('/block')) {
+            return await setBlocked(event, path.slice('/admin/users/'.length, -'/block'.length), true);
+          }
+          if (path.endsWith('/unblock')) {
+            return await setBlocked(event, path.slice('/admin/users/'.length, -'/unblock'.length), false);
+          }
         }
         return json(404, { error: 'not found' });
     }
@@ -101,6 +124,12 @@ async function requireAuth(event: any): Promise<{ userId: string; identifier: st
   if (!token) httpError(401, 'unauthorized');
   const payload = await verifyJwt(token, await getJwtSecret()).catch(() => httpError(401, 'unauthorized'));
   return { userId: payload.sub!, identifier: payload.identifier ?? '' };
+}
+
+async function requireAdmin(event: any): Promise<{ userId: string; identifier: string }> {
+  const auth = await requireAuth(event);
+  if (!isAdmin(auth.identifier, ADMIN_IDENTIFIERS)) httpError(403, 'forbidden');
+  return auth;
 }
 
 async function userById(userId: string): Promise<any> {
@@ -175,7 +204,11 @@ async function me(event: any): Promise<any> {
   const auth = await requireAuth(event);
   const user = await userById(auth.userId);
   if (!user) httpError(401, 'unauthorized');
-  return json(200, { userId: user.userId, identifier: user.identifier });
+  return json(200, {
+    userId: user.userId,
+    identifier: user.identifier,
+    role: isAdmin(user.identifier, ADMIN_IDENTIFIERS) ? 'admin' : 'user',
+  });
 }
 
 async function createToken(event: any): Promise<any> {
@@ -259,4 +292,79 @@ async function listLogs(event: any): Promise<any> {
     }),
   );
   return json(200, { logs: logSummary(rowGroups.flat(), 50) });
+}
+
+async function listUsers(event: any): Promise<any> {
+  await requireAdmin(event);
+  const res = await doc.send(new ScanCommand({ TableName: USERS_TABLE }));
+  return json(200, { users: buildUserList(res.Items ?? []) });
+}
+
+async function setBlocked(event: any, userId: string, blocked: boolean): Promise<any> {
+  await requireAdmin(event);
+  const user = await userById(userId);
+  if (!user) httpError(404, 'user not found');
+  if (blocked) {
+    await deleteRowsByUserId(TOKENS_TABLE, userId);
+    const [tunnels, connections] = await Promise.all([
+      doc.send(
+        new QueryCommand({
+          TableName: TUNNELS_TABLE,
+          IndexName: 'userIdIndex',
+          KeyConditionExpression: '#u = :u',
+          ExpressionAttributeNames: { '#u': 'userId' },
+          ExpressionAttributeValues: { ':u': userId },
+        }),
+      ),
+      doc.send(new ScanCommand({ TableName: CONNECTIONS_TABLE })),
+    ]);
+    const plan = adminRevokePlan(tunnels.Items ?? [], connections.Items ?? [], userId);
+    const client = new ApiGatewayManagementApiClient({ region: process.env.AWS_REGION! });
+    for (const connectionId of plan.connectionIds) {
+      await client.send(new DeleteConnectionCommand({ ConnectionId: connectionId })).catch((err: any) => {
+        if (err?.name !== 'GoneException') console.error('deleteConnection failed', connectionId, err);
+      });
+    }
+    await deleteRowsByUserId(TUNNELS_TABLE, userId);
+  }
+  await doc.send(
+    new UpdateCommand({
+      TableName: USERS_TABLE,
+      Key: { userId },
+      UpdateExpression: 'SET blocked = :b',
+      ExpressionAttributeValues: { ':b': blocked },
+    }),
+  );
+  return json(204, {});
+}
+
+async function deleteRowsByUserId(table: string, userId: string): Promise<void> {
+  let lastKey: Record<string, unknown> | undefined;
+  do {
+    const res = await doc.send(
+      new QueryCommand({
+        TableName: table,
+        IndexName: 'userIdIndex',
+        KeyConditionExpression: '#u = :u',
+        ExpressionAttributeNames: { '#u': 'userId' },
+        ExpressionAttributeValues: { ':u': userId },
+        Limit: 250,
+        ExclusiveStartKey: lastKey,
+      }),
+    );
+    const items = res.Items ?? [];
+    const keyName = table === TUNNELS_TABLE ? 'subdomain' : 'tokenId';
+    for (let i = 0; i < items.length; i += 25) {
+      await doc.send(
+        new BatchWriteCommand({
+          RequestItems: {
+            [table]: items.slice(i, i + 25).map((item) => ({
+              DeleteRequest: { Key: { [keyName]: item[keyName] } },
+            })),
+          },
+        }),
+      );
+    }
+    lastKey = res.LastEvaluatedKey as Record<string, unknown> | undefined;
+  } while (lastKey);
 }
