@@ -25,7 +25,7 @@ backward success criteria.
 
 ### Phase 1: Foundation
 
-**Goal:** A CDK project deploys a serverless app with all data storage ready.
+**Goal:** A CDK project deploys the full serverless structure with all data storage ready.
 
 **Requirements:** INFRA-01, INFRA-03
 
@@ -34,6 +34,7 @@ backward success criteria.
 2. Repo has a monorepo layout (infra/, cli/, ui/, shared/) with consistent scripts
 3. Logs/connections tables have TTL enabled
 4. Local dev workflow documented in README
+5. Full stack structure defined in CDK: WS API Gateway (connect/disconnect/default routes), relay Lambda + Function URL, HTTP API, S3 + CloudFront (UI + wildcard *.tunell.com), ACM cert — Lambda handlers as stubs, wired and synthesizing
 
 ### Phase 2: Auth
 

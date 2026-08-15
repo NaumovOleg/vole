@@ -34,6 +34,8 @@
 - v1 CLI: http/tcp/ws + multiple tunnels; no reconnect, no vanity subdomains (v2)
 - Dashboard: tokens + connections + request logs; admin: user list + block/revoke
 - Mode: YOLO, Depth: Comprehensive, Execution: Parallel
+- Phase 1 describes the FULL CDK structure (WS API, relay Lambda URL, HTTP API, S3+CloudFront UI and wildcard distributions, ACM cert) with stub Lambda handlers; real logic lands in later phases
+- UI served at apex `tunell.com`, tunnels at `*.tunell.com` (wildcard matches only subdomains, not apex — avoids conflict)
 
 ### Technical Constraints
 
