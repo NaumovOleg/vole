@@ -3,14 +3,14 @@
 ## Project Reference
 
 - **Core value:** A solo developer runs `vole http 3000`, receives a public URL, and HTTP requests to that URL reach their local server — pure serverless AWS, no containers.
-- **Current focus:** Phase 3 (WS Control Plane) — code done, integration pending user deploy.
+- **Current focus:** Phase 4 (HTTP Tunnel E2E) — code done, integration pending user deploy.
 
 ## Current Position
 
-**Phase:** 3 — WS Control Plane
-**Plan:** 01-03 — complete (deploy + integration pending user)
-**Status:** Phase done; ready for `/gsd:plan-phase 4`
-**Progress:** [███░░░░░░░░░░░░░░░░░] 3/10 phases (code complete, deploy pending)
+**Phase:** 4 — HTTP Tunnel End-to-End
+**Plan:** 04-05 — complete (deploy + integration pending user)
+**Status:** Phase done; ready for `/gsd:plan-phase 5`
+**Progress:** [████░░░░░░░░░░░░░░░░] 4/10 phases (code complete, deploy pending)
 
 ## Performance Metrics
 
@@ -19,7 +19,7 @@
 | Requirements | 36 v1 |
 | Phases | 10 |
 | Coverage | 36/36 mapped |
-| Plans complete | 7 |
+| Plans complete | 12 |
 
 ## Accumulated Context
 
@@ -42,6 +42,13 @@
 - Frame protocol: typed {t, id, d}, 10 types, lives in shared/ (one contract for CLI + Lambda)
 - WS $connect auth: token hash lookup via tokenHashIndex; blocked user's token deleted at connect
 - Connection TTL 12h, refreshed on frame activity; malformed frames → error frame, connection kept
+- Relay lookup: subdomain → tunnel (userIdIndex GSI) → active connection
+- Relay reads WS API endpoint from env (`WS_ENDPOINT`) — Lambda URL event has no WS domainName
+- Tunnel/connection rows TTL'd; stale tunnels cleaned by relay on lookup miss
+- 10MB request body cap; chunked request data frames (90KB chunks); 30s relay poll → 504
+- Relay uses RESPONSE_STREAM (Lambda URL streaming) with Readable body
+- CLI: Node 22+ global WebSocket, bun build single-file (node:dist/vole.js), `@tunell/shared` bundled in
+- CLI config at ~/.vole/config.json (0600); default WS server wss://api.vole.sh/dev
 
 ### Technical Constraints
 
@@ -60,8 +67,8 @@
 
 ## Session Continuity
 
-**Last session:** 2026-08-15 — Phases 1-3 planned and executed (foundation, auth, WS control plane); code synth-verified, integration pending user deploy.
+**Last session:** 2026-08-15 — Phases 1-4 planned and executed (foundation, auth, WS control plane, HTTP tunnel E2E: relay + CLI); code synth-verified, integration pending user deploy.
 
 **Next session commands:**
-1. `/gsd:plan-phase 4` — HTTP Tunnel End-to-End (the core loop: `vole http 3000`)
+1. `/gsd:plan-phase 5` — dashboard (React UI) + admin
 2. `/gsd:progress` — current state
