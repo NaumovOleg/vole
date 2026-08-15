@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, QueryCommand, GetCommand, PutCommand, DeleteCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, QueryCommand, GetCommand, PutCommand, DeleteCommand, UpdateCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
 import { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi';
 import { hashToken } from '../auth-handler/core';
 import { parseFrame, encodeFrame } from '../../../../shared/src/protocol';
@@ -133,6 +133,9 @@ async function onDisconnect(event: any): Promise<any> {
   if (connRow?.userId) {
     await cleanupTunnels(connRow.userId, connectionId);
   }
+  if (connRow?.userId) {
+    await purgeLogs(connectionId);
+  }
   if (isProxyConnection(connRow) && connRow.tunnelSubdomain) {
     await clearProxyConnection(connRow.tunnelSubdomain, connectionId);
   }
@@ -171,6 +174,34 @@ async function cleanupTunnels(userId: string, connectionId: string): Promise<voi
       await doc.send(new DeleteCommand({ TableName: TUNNELS_TABLE, Key: { subdomain: tunnel.subdomain } }));
     }
   }
+}
+
+async function purgeLogs(connectionId: string): Promise<void> {
+  let lastKey: Record<string, unknown> | undefined;
+  do {
+    const res = await doc.send(
+      new QueryCommand({
+        TableName: LOGS_TABLE,
+        KeyConditionExpression: 'connectionId = :c',
+        ExpressionAttributeValues: { ':c': connectionId },
+        Limit: 250,
+        ExclusiveStartKey: lastKey,
+      }),
+    );
+    const items = res.Items ?? [];
+    if (items.length > 0) {
+      await doc.send(
+        new BatchWriteCommand({
+          RequestItems: {
+            [LOGS_TABLE]: items.map((item) => ({
+              DeleteRequest: { Key: { connectionId: item.connectionId, requestId: item.requestId } },
+            })),
+          },
+        }),
+      );
+    }
+    lastKey = res.LastEvaluatedKey as Record<string, unknown> | undefined;
+  } while (lastKey);
 }
 
 async function onMessage(event: any): Promise<any> {
@@ -397,7 +428,7 @@ async function storeResponse(connectionId: string, frame: any): Promise<void> {
         ':h': d.headers ?? {},
         ':ct': d.chunkTotal ?? 0,
         ':ca': Date.now(),
-        ':e': Date.now() + 60_000,
+        ':e': Date.now() + TTL_MS,
         ...(d.bodyB64 !== undefined ? { ':b': d.bodyB64 } : {}),
       },
     }),
@@ -414,7 +445,7 @@ async function storeChunk(connectionId: string, frame: any): Promise<void> {
         connectionId,
         requestId: `${frame.id}#${d.n}`,
         data: d.data,
-        expiresAt: Date.now() + 60_000,
+        expiresAt: Date.now() + TTL_MS,
       },
     }),
   );

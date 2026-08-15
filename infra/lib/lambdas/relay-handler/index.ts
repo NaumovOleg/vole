@@ -17,6 +17,7 @@ const DOMAIN = process.env.DOMAIN ?? 'vole.sh';
 const MAX_BODY = 10 * 1024 * 1024;
 const POLL_INTERVAL_MS = 300;
 const POLL_TIMEOUT_MS = 30_000;
+const CONNECTION_TTL_MS = 12 * 3600 * 1000;
 
 const HOP_BY_HOP = new Set([
   'host', 'content-length', 'connection', 'transfer-encoding', 'keep-alive',
@@ -85,7 +86,7 @@ export async function handler(event: any): Promise<any> {
         path,
         status: 'pending',
         createdAt: Date.now(),
-        expiresAt: Date.now() + 60_000,
+        expiresAt: Date.now() + CONNECTION_TTL_MS,
       },
     }),
   );
