@@ -67,11 +67,17 @@ export class TunnelSession {
         this.subdomain = frame.d.subdomain;
         this.openResolve?.({ subdomain: frame.d.subdomain, url: frame.d.url });
         break;
-      case 'request':
-        if (this.opts.onRequest) {
-          await this.opts.onRequest(frame.d, (resp) => this.reply(frame.id, resp));
+      case 'request': {
+        const d = frame.d as HttpRequestPayload;
+        if (!this.opts.onRequest) break;
+        let body = d.bodyB64;
+        if (d.chunkTotal && d.chunkTotal > 1) {
+          body = await this.waitChunks(frame.id, d.chunkTotal);
         }
+        if (body !== undefined) d.bodyB64 = body;
+        await this.opts.onRequest(d, (resp) => this.reply(frame.id, resp));
         break;
+      }
       case 'data': {
         const d = frame.d;
         if (typeof d.n !== 'number' || typeof d.data !== 'string') return;
