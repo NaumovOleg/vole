@@ -4,5 +4,6 @@
     "outDir": "dist",
     "types": ["node"]
   },
-  "include": ["bin", "lib"]
+  "include": ["bin", "lib"],
+  "exclude": ["**/*.test.ts"]
 }
