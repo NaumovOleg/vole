@@ -1,5 +1,22 @@
 {
-  "name": "@vole/cli",
-  "version": "0.0.0",
-  "private": true
+  "name": "vole",
+  "version": "0.1.0",
+  "description": "Self-hosted HTTP tunnel client (ngrok alternative on AWS)",
+  "type": "module",
+  "bin": {
+    "vole": "dist/vole.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun build src/index.ts --target=node --outfile dist/vole.js --banner \"#!/usr/bin/env node\"",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@tunell/shared": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
 }
