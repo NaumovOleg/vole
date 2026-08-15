@@ -63,3 +63,42 @@ export function pongFrame(id: string): Frame {
 export function errorFrame(id: string, error: string): Frame<{ error: string }> {
   return { t: 'error', id, d: { error } };
 }
+
+export interface HttpRequestPayload {
+  method: string;
+  path: string;
+  query?: string;
+  headers?: Record<string, string>;
+  bodyB64?: string;
+  chunkTotal?: number;
+}
+
+export interface HttpResponsePayload {
+  statusCode: number;
+  headers?: Record<string, string>;
+  bodyB64?: string;
+  chunkTotal?: number;
+}
+
+export interface DataPayload {
+  n: number;
+  data: string;
+}
+
+export function requestFrame(
+  id: string,
+  d: HttpRequestPayload,
+): Frame<HttpRequestPayload> {
+  return { t: 'request', id, d };
+}
+
+export function responseFrame(
+  id: string,
+  d: HttpResponsePayload,
+): Frame<HttpResponsePayload> {
+  return { t: 'response', id, d };
+}
+
+export function dataFrame(id: string, n: number, data: string): Frame<DataPayload> {
+  return { t: 'data', id, d: { n, data } };
+}
