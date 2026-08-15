@@ -36,6 +36,10 @@ export class VoleStack extends Stack {
       indexName: 'tokenHashIndex',
       partitionKey: { name: 'tokenHash', type: dynamodb.AttributeType.STRING },
     });
+    tokensTable.addGlobalSecondaryIndex({
+      indexName: 'userIdIndex',
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+    });
 
     const connectionsTable = new dynamodb.Table(this, 'ConnectionsTable', {
       partitionKey: { name: 'connectionId', type: dynamodb.AttributeType.STRING },
