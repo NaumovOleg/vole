@@ -11,8 +11,11 @@ const doc = DynamoDBDocumentClient.from(ddb);
 const CONNECTIONS_TABLE = process.env.CONNECTIONS_TABLE!;
 const TOKENS_TABLE = process.env.TOKENS_TABLE!;
 const USERS_TABLE = process.env.USERS_TABLE!;
+const TUNNELS_TABLE = process.env.TUNNELS_TABLE!;
+const LOGS_TABLE = process.env.LOGS_TABLE!;
 
 const TTL_MS = 12 * 3600 * 1000;
+const DOMAIN = process.env.DOMAIN ?? 'vole.sh';
 
 export async function handler(event: any): Promise<any> {
   const route = event.requestContext?.routeKey;
@@ -81,9 +84,30 @@ async function onConnect(event: any): Promise<any> {
 
 async function onDisconnect(event: any): Promise<any> {
   const connectionId = event.requestContext.connectionId;
+  const conn = await doc.send(new GetCommand({ TableName: CONNECTIONS_TABLE, Key: { connectionId } }));
   await doc.send(new DeleteCommand({ TableName: CONNECTIONS_TABLE, Key: { connectionId } }));
+  if (conn.Item?.userId) {
+    await cleanupTunnels(conn.Item.userId, connectionId);
+  }
   console.log('disconnected', connectionId);
   return { statusCode: 200 };
+}
+
+async function cleanupTunnels(userId: string, connectionId: string): Promise<void> {
+  const res = await doc.send(
+    new QueryCommand({
+      TableName: TUNNELS_TABLE,
+      IndexName: 'userIdIndex',
+      KeyConditionExpression: '#u = :u',
+      ExpressionAttributeNames: { '#u': 'userId' },
+      ExpressionAttributeValues: { ':u': userId },
+    }),
+  );
+  for (const tunnel of res.Items ?? []) {
+    if (tunnel.connectionId === connectionId) {
+      await doc.send(new DeleteCommand({ TableName: TUNNELS_TABLE, Key: { subdomain: tunnel.subdomain } }));
+    }
+  }
 }
 
 async function onMessage(event: any): Promise<any> {
@@ -114,10 +138,145 @@ async function onMessage(event: any): Promise<any> {
     case 'pong':
       await touch(connectionId);
       break;
+    case 'tunnel-open':
+      await openTunnel(client, connectionId, frame);
+      break;
+    case 'tunnel-close':
+      await closeTunnel(client, connectionId, frame);
+      break;
+    case 'response':
+      await storeResponse(connectionId, frame);
+      break;
+    case 'data':
+      await storeChunk(connectionId, frame);
+      break;
     default:
       await safePost(client, connectionId, encodeFrame('error', frame.id, { error: `frame type ${frame.t} not supported yet` }));
   }
   return { statusCode: 200 };
+}
+
+async function userIdOfConnection(connectionId: string): Promise<string | undefined> {
+  const res = await doc.send(new GetCommand({ TableName: CONNECTIONS_TABLE, Key: { connectionId } }));
+  return res.Item?.userId;
+}
+
+async function openTunnel(client: ApiGatewayManagementApiClient, connectionId: string, frame: any): Promise<void> {
+  const userId = await userIdOfConnection(connectionId);
+  if (!userId) {
+    await safePost(client, connectionId, encodeFrame('error', frame.id, { error: 'connection not registered' }));
+    return;
+  }
+  const type = frame.d?.type;
+  const localPort = frame.d?.localPort;
+  if (!['http', 'tcp', 'ws'].includes(type) || typeof localPort !== 'number') {
+    await safePost(client, connectionId, encodeFrame('error', frame.id, { error: 'invalid tunnel-open payload' }));
+    return;
+  }
+
+  const existing = await doc.send(
+    new QueryCommand({
+      TableName: TUNNELS_TABLE,
+      IndexName: 'userIdIndex',
+      KeyConditionExpression: '#u = :u',
+      ExpressionAttributeNames: { '#u': 'userId' },
+      ExpressionAttributeValues: { ':u': userId },
+    }),
+  );
+  if ((existing.Items ?? []).some((t) => t.connectionId === connectionId)) {
+    await safePost(client, connectionId, encodeFrame('error', frame.id, { error: 'tunnel already open on this connection' }));
+    return;
+  }
+
+  const base = `u-${userId.slice(0, 8)}`;
+  for (let i = 0; i < 10; i++) {
+    const subdomain = i === 0 ? base : `${base}-${i}`;
+    try {
+      await doc.send(
+        new PutCommand({
+          TableName: TUNNELS_TABLE,
+          Item: {
+            subdomain,
+            userId,
+            connectionId,
+            type,
+            localPort,
+            createdAt: Date.now(),
+          },
+          ConditionExpression: 'attribute_not_exists(subdomain)',
+        }),
+      );
+      await safePost(
+        client,
+        connectionId,
+        encodeFrame('tunnel-open', frame.id, { subdomain, url: `https://${subdomain}.${DOMAIN}` }),
+      );
+      return;
+    } catch (err: any) {
+      if (err?.name === 'ConditionalCheckFailedException') continue;
+      throw err;
+    }
+  }
+  await safePost(client, connectionId, encodeFrame('error', frame.id, { error: 'no subdomain slots left' }));
+}
+
+async function closeTunnel(client: ApiGatewayManagementApiClient, connectionId: string, frame: any): Promise<void> {
+  const subdomain = frame.d?.subdomain;
+  if (typeof subdomain !== 'string') {
+    await safePost(client, connectionId, encodeFrame('error', frame.id, { error: 'subdomain required' }));
+    return;
+  }
+  const res = await doc.send(new GetCommand({ TableName: TUNNELS_TABLE, Key: { subdomain } }));
+  if (!res.Item) {
+    await safePost(client, connectionId, encodeFrame('error', frame.id, { error: 'no such tunnel' }));
+    return;
+  }
+  if (res.Item.connectionId !== connectionId) {
+    await safePost(client, connectionId, encodeFrame('error', frame.id, { error: 'not your tunnel' }));
+    return;
+  }
+  await doc.send(new DeleteCommand({ TableName: TUNNELS_TABLE, Key: { subdomain } }));
+  await safePost(client, connectionId, encodeFrame('tunnel-close', frame.id, { subdomain }));
+}
+
+async function storeResponse(connectionId: string, frame: any): Promise<void> {
+  const requestId = frame.id;
+  const d = frame.d ?? {};
+  await doc.send(
+    new UpdateCommand({
+      TableName: LOGS_TABLE,
+      Key: { connectionId, requestId },
+      UpdateExpression:
+        'SET #s = :s, statusCode = :sc, headers = :h, chunkTotal = :ct, completedAt = :ca, expiresAt = :e' +
+        (d.bodyB64 !== undefined ? ', bodyB64 = :b' : ''),
+      ExpressionAttributeNames: { '#s': 'status' },
+      ExpressionAttributeValues: {
+        ':s': 'done',
+        ':sc': d.statusCode ?? 500,
+        ':h': d.headers ?? {},
+        ':ct': d.chunkTotal ?? 0,
+        ':ca': Date.now(),
+        ':e': Date.now() + 60_000,
+        ...(d.bodyB64 !== undefined ? { ':b': d.bodyB64 } : {}),
+      },
+    }),
+  );
+}
+
+async function storeChunk(connectionId: string, frame: any): Promise<void> {
+  const d = frame.d ?? {};
+  if (typeof d.n !== 'number' || typeof d.data !== 'string') return;
+  await doc.send(
+    new PutCommand({
+      TableName: LOGS_TABLE,
+      Item: {
+        connectionId,
+        requestId: `${frame.id}#${d.n}`,
+        data: d.data,
+        expiresAt: Date.now() + 60_000,
+      },
+    }),
+  );
 }
 
 function apiClient(event: any): ApiGatewayManagementApiClient {
