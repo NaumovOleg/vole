@@ -228,6 +228,7 @@ export class VoleStack extends Stack {
     new CfnOutput(this, 'RelayUrl', { value: relayUrl.url });
     new CfnOutput(this, 'UIBucketName', { value: uiBucket.bucketName });
     new CfnOutput(this, 'UiDistributionDomain', { value: uiDistribution.distributionDomainName });
+    new CfnOutput(this, 'UiDistributionId', { value: uiDistribution.distributionId });
     new CfnOutput(this, 'TunnelDistributionDomain', { value: tunnelDistribution.distributionDomainName });
   }
 }
