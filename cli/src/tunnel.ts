@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   encodeFrame,
   parseFrame,
@@ -18,6 +19,7 @@ export interface TunnelOptions {
   type: 'http' | 'tcp' | 'ws';
   localPort: number;
   onRequest?: (request: HttpRequestPayload, reply: (resp: HttpResponsePayload) => Promise<void>) => Promise<void>;
+  onData?: (n: number, dataB64: string) => void;
 }
 
 export class TunnelSession {
@@ -81,6 +83,10 @@ export class TunnelSession {
       case 'data': {
         const d = frame.d;
         if (typeof d.n !== 'number' || typeof d.data !== 'string') return;
+        if (this.opts.onData) {
+          this.opts.onData(d.n, d.data);
+          break;
+        }
         let list = this.chunks.get(frame.id);
         if (!list) {
           list = new Map();
@@ -133,6 +139,10 @@ export class TunnelSession {
     } else {
       await this.send(responseFrame(id, resp));
     }
+  }
+
+  sendData(n: number, dataB64: string): Promise<void> {
+    return this.send(dataFrame(randomUUID(), n, dataB64));
   }
 
   send(message: string | Frame): Promise<void> {

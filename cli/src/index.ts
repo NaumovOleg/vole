@@ -1,5 +1,6 @@
 import { runAuthtoken } from './commands/authtoken.js';
 import { runHttp } from './commands/http.js';
+import { runTcp } from './commands/tcp.js';
 
 const command = process.argv[2];
 const args = process.argv.slice(3);
@@ -10,6 +11,9 @@ switch (command) {
     break;
   case 'http':
     runHttp(args);
+    break;
+  case 'tcp':
+    runTcp(args);
     break;
   case undefined:
   case 'help':
@@ -29,8 +33,10 @@ function printUsage(): void {
 Usage:
   vole authtoken <token> [wss-server-url]   save your API token
   vole http <port>                           open an HTTP tunnel to a local server
+  vole tcp <port>                            bridge a TCP port to a local server
 
 Examples:
   vole authtoken vole_abc123 wss://xxxx.execute-api.us-east-1.amazonaws.com/dev
-  vole http 3000`);
+  vole http 3000
+  vole tcp 5432`);
 }
