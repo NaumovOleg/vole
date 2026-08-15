@@ -60,6 +60,18 @@ export class TunnelManager<S extends TunnelSpec<S>> {
     );
   }
 
+  close(id: string): Promise<void> {
+    const t = this.tunnels.get(id);
+    if (!t) return Promise.resolve();
+    t.state = 'closed';
+    if (t.handle) return t.handle.close();
+    return Promise.resolve();
+  }
+
+  statuses(): Array<{ id: string; state: TunnelState; url?: string }> {
+    return [...this.tunnels.values()].map((t) => ({ id: t.id, state: t.state, url: t.handle?.url }));
+  }
+
   count(): number {
     return this.tunnels.size;
   }

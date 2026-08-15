@@ -3,6 +3,7 @@ import { launchHttp, httpHints } from './commands/http.js';
 import { launchTcp, tcpHints } from './commands/tcp.js';
 import { launchWs, wsHints } from './commands/ws.js';
 import { TunnelManager } from './manager.js';
+import { startRepl } from './repl.js';
 import { voleToken } from './session.js';
 
 const args = process.argv.slice(2);
@@ -17,6 +18,9 @@ switch (args[0]) {
     runTunnels();
     break;
   case undefined:
+    if (!tokenOk()) break;
+    startRepl();
+    break;
   case 'help':
   case '--help':
   case '-h':
@@ -86,10 +90,16 @@ function printUsage(): void {
   console.log(`vole — self-hosted tunnel client
 
 Usage:
+  vole                                  interactive console (type commands below)
   vole authtoken <token> [wss-server-url]   save your API token
   vole <kind> <port> [<kind> <port> ...]    open one or more tunnels
 
 Kinds: http | tcp | ws
+
+Interactive commands:
+  http <port> / tcp <port> / ws <port>  open a tunnel
+  stop <port>                           close that tunnel
+  list / exit                           show tunnels / quit
 
 Examples:
   vole authtoken vole_abc123 wss://xxxx.execute-api.us-east-1.amazonaws.com/dev
