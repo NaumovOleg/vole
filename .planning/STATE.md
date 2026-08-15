@@ -3,14 +3,14 @@
 ## Project Reference
 
 - **Core value:** A solo developer runs `vole http 3000`, receives a public URL, and HTTP requests to that URL reach their local server — pure serverless AWS, no containers.
-- **Current focus:** Phase 1 (Foundation) — done, deploy pending (user deploys manually).
+- **Current focus:** Phase 3 (WS Control Plane) — code done, integration pending user deploy.
 
 ## Current Position
 
-**Phase:** 1 — Foundation
-**Plan:** 01 — complete (deploy deferred to user)
-**Status:** Phase done; ready for `/gsd:plan-phase 2`
-**Progress:** [█░░░░░░░░░░░░░░░░░░░] 1/10 phases planned+executed (deploy pending)
+**Phase:** 3 — WS Control Plane
+**Plan:** 01-03 — complete (deploy + integration pending user)
+**Status:** Phase done; ready for `/gsd:plan-phase 4`
+**Progress:** [███░░░░░░░░░░░░░░░░░] 3/10 phases (code complete, deploy pending)
 
 ## Performance Metrics
 
@@ -19,7 +19,7 @@
 | Requirements | 36 v1 |
 | Phases | 10 |
 | Coverage | 36/36 mapped |
-| Plans complete | 1 |
+| Plans complete | 7 |
 
 ## Accumulated Context
 
@@ -39,6 +39,9 @@
 - UI served at apex `vole.sh`, tunnels at `*.vole.sh` (wildcard matches only subdomains, not apex)
 - Lambda runtime nodejs22.x (nodejs20 deprecated)
 - **User deploys CDK manually** — no AWS credentials in this environment
+- Frame protocol: typed {t, id, d}, 10 types, lives in shared/ (one contract for CLI + Lambda)
+- WS $connect auth: token hash lookup via tokenHashIndex; blocked user's token deleted at connect
+- Connection TTL 12h, refreshed on frame activity; malformed frames → error frame, connection kept
 
 ### Technical Constraints
 
@@ -57,8 +60,8 @@
 
 ## Session Continuity
 
-**Last session:** 2026-08-15 — Phase 1 Foundation planned and executed (synth verified); deploy deferred to user (`cd infra && npm run deploy`).
+**Last session:** 2026-08-15 — Phases 1-3 planned and executed (foundation, auth, WS control plane); code synth-verified, integration pending user deploy.
 
 **Next session commands:**
-1. `/gsd:plan-phase 2` — Auth (custom Lambda + JWT, email/phone)
+1. `/gsd:plan-phase 4` — HTTP Tunnel End-to-End (the core loop: `vole http 3000`)
 2. `/gsd:progress` — current state
