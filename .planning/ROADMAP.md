@@ -1,4 +1,4 @@
-# Tunell Roadmap
+# Vole Roadmap
 
 ## Overview
 
@@ -167,11 +167,11 @@ backward success criteria.
 
 | Phase | Status |
 |-------|--------|
-| 1 - Foundation | Pending |
-| 2 - Auth | Pending |
-| 3 - WS Control Plane | Pending |
-| 4 - HTTP Tunnel End-to-End | Pending |
-| 5 - TCP & WS Tunnels | Pending |
+| 1 - Foundation | Complete (code) |
+| 2 - Auth | Complete (code) |
+| 3 - WS Control Plane | Complete (code) |
+| 4 - HTTP Tunnel End-to-End | Complete (code) |
+| 5 - TCP & WS Tunnels | Complete (code) |
 | 6 - CLI Multi-Tunnel & Polish | Pending |
 | 7 - Dashboard API | Pending |
 | 8 - Dashboard UI | Pending |
