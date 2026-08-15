@@ -8,7 +8,9 @@
   },
   "dependencies": {
     "aws-cdk-lib": "^2.190.0",
-    "constructs": "^10.0.0"
+    "bcryptjs": "^3.0.3",
+    "constructs": "^10.0.0",
+    "jose": "^6.2.9"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
