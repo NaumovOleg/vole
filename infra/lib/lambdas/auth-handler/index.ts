@@ -1,0 +1,4 @@
+export async function handler(event: any): Promise<any> {
+  console.log(JSON.stringify({ event }));
+  return { statusCode: 200, body: JSON.stringify({ ok: true }) };
+}
