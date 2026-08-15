@@ -1,0 +1,14 @@
+{
+  "name": "tunell",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "infra",
+    "cli",
+    "ui",
+    "shared"
+  ],
+  "scripts": {
+    "build": "npm run build -w @tunell/shared && npm run build -w infra"
+  }
+}
