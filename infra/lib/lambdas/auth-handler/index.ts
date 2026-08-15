@@ -2,6 +2,7 @@ import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-sec
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, QueryCommand, GetCommand, PutCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { randomUUID } from 'node:crypto';
+import { listConnections, logSummary } from './dashboard';
 import {
   hashPassword,
   verifyPassword,
@@ -19,6 +20,8 @@ const doc = DynamoDBDocumentClient.from(ddb);
 const JWT_SECRET_ARN = process.env.JWT_SECRET_ARN!;
 const USERS_TABLE = process.env.USERS_TABLE!;
 const TOKENS_TABLE = process.env.TOKENS_TABLE!;
+const TUNNELS_TABLE = process.env.TUNNELS_TABLE!;
+const LOGS_TABLE = process.env.LOGS_TABLE!;
 
 let jwtSecretPromise: Promise<string> | undefined;
 function getJwtSecret(): Promise<string> {
@@ -48,6 +51,10 @@ export async function handler(event: any): Promise<any> {
         return await createToken(event);
       case 'GET /tokens':
         return await listTokens(event);
+      case 'GET /connections':
+        return await listConnectionsRoute(event);
+      case 'GET /logs':
+        return await listLogs(event);
       default:
         if (method === 'DELETE' && path.startsWith('/tokens/')) {
           return await revokeToken(event, path);
@@ -210,4 +217,46 @@ async function revokeToken(event: any, path: string): Promise<any> {
 
   await doc.send(new DeleteCommand({ TableName: TOKENS_TABLE, Key: { tokenId } }));
   return json(204, {});
+}
+
+async function listConnectionsRoute(event: any): Promise<any> {
+  const auth = await requireAuth(event);
+  const res = await doc.send(
+    new QueryCommand({
+      TableName: TUNNELS_TABLE,
+      IndexName: 'userIdIndex',
+      KeyConditionExpression: '#u = :u',
+      ExpressionAttributeNames: { '#u': 'userId' },
+      ExpressionAttributeValues: { ':u': auth.userId },
+    }),
+  );
+  return json(200, { connections: listConnections(res.Items ?? []) });
+}
+
+async function listLogs(event: any): Promise<any> {
+  const auth = await requireAuth(event);
+  const tunnels = await doc.send(
+    new QueryCommand({
+      TableName: TUNNELS_TABLE,
+      IndexName: 'userIdIndex',
+      KeyConditionExpression: '#u = :u',
+      ExpressionAttributeNames: { '#u': 'userId' },
+      ExpressionAttributeValues: { ':u': auth.userId },
+    }),
+  );
+  const connectionIds = [...new Set((tunnels.Items ?? []).map((t) => t.connectionId).filter(Boolean))];
+  const rowGroups = await Promise.all(
+    connectionIds.map(async (connectionId) => {
+      const res = await doc.send(
+        new QueryCommand({
+          TableName: LOGS_TABLE,
+          KeyConditionExpression: 'connectionId = :c',
+          ExpressionAttributeValues: { ':c': connectionId },
+          Limit: 100,
+        }),
+      );
+      return res.Items ?? [];
+    }),
+  );
+  return json(200, { logs: logSummary(rowGroups.flat(), 50) });
 }

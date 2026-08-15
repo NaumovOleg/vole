@@ -1,12 +1,12 @@
 export interface TunnelRow {
-  subdomain: string;
+  subdomain?: string;
   type?: string;
   localPort?: number;
   createdAt?: number;
 }
 
 export interface LogRow {
-  requestId: string;
+  requestId?: string;
   method?: string;
   path?: string;
   status?: string;
@@ -19,7 +19,7 @@ export function listConnections(rows: TunnelRow[]): Array<{ subdomain: string; t
   return [...rows]
     .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
     .map((t) => ({
-      subdomain: t.subdomain,
+      subdomain: t.subdomain ?? '',
       type: t.type,
       localPort: t.localPort,
       createdAt: t.createdAt,
@@ -35,7 +35,7 @@ export function logSummary(
     .sort((a, b) => (b.completedAt ?? b.createdAt ?? 0) - (a.completedAt ?? a.createdAt ?? 0))
     .slice(0, limit)
     .map((r) => ({
-      requestId: r.requestId,
+      requestId: r.requestId ?? '',
       method: r.method,
       path: r.path,
       status: r.status,
