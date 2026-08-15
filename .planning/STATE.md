@@ -3,14 +3,14 @@
 ## Project Reference
 
 - **Core value:** A solo developer runs `vole http 3000`, receives a public URL, and HTTP requests to that URL reach their local server — pure serverless AWS, no containers.
-- **Current focus:** Phase 9 (Admin Panel) — code done, mock-QA'd, integration pending user deploy.
+- **Current focus:** All 10 phases complete (code). Remaining: user-owned deploy per README.
 
 ## Current Position
 
-**Phase:** 9 — Admin Panel
-**Plan:** 09-02 — complete (deploy + integration pending user)
-**Status:** Phase done; ready for `/gsd:plan-phase 10`
-**Progress:** [█████████░░░░░░░░░░░] 9/10 phases (code complete, deploy pending)
+**Phase:** 10 — Deployment & Docs
+**Plan:** 10-02 — complete
+**Status:** Project complete (code); deployment run is user-owned
+**Progress:** [████████████████████] 10/10 phases (code complete, deploy pending)
 
 ## Performance Metrics
 
@@ -19,7 +19,7 @@
 | Requirements | 36 v1 |
 | Phases | 10 |
 | Coverage | 36/36 mapped |
-| Plans complete | 27 |
+| Plans complete | 30 |
 
 ## Accumulated Context
 
@@ -78,6 +78,13 @@
   can't open new tunnels); `$connect` already deletes blocked user's token
 - UI: `loadMe()` single source of truth for user + role — runs on mount and
   after login/register (login response has no identifier)
+- Deploy: `scripts/deploy-ui.sh` (build → s3 sync --delete → cloudfront
+  invalidation, ids from CDK outputs via describe-stacks); stack exposes
+  UiDistributionId output; README covers full deploy incl. manual Route 53
+- Known warnings (deferred): CDK S3Origin deprecation (→S3BucketOrigin in next
+  major), BinaryMediaTypes property override acknowledged in synth; bun.lock is
+  untracked — do NOT commit it while package-lock.json is tracked (CDK fails on
+  two lockfiles)
 
 ### Technical Constraints
 
@@ -96,8 +103,8 @@
 
 ## Session Continuity
 
-**Last session:** 2026-08-15 — Phase 8 (Dashboard UI): scaffold `77d5dce`, panels `01b1321`, polish `30e07d6`. Phase 9 (Admin Panel): admin API `276166d` (env-flag role, /admin/users, block/unblock with WS kill), admin UI `07f1a2b` (+`5889c30` fix — App now calls me() after login so role/identifier render). Visual QA on mock API: admin sees Users, block round-trip works, non-admin doesn't; 43 tests green, cdk synth ok. Mock-QA only; live QA needs a real deploy (user-owned).
+**Last session:** 2026-08-15 — Phases 8-10 completed. Phase 8 Dashboard UI (`77d5dce`, `01b1321`, `30e07d6`); Phase 9 Admin Panel (`276166d`, `07f1a2b`, `5889c30` — env-flag role, /admin/users, block kills WS+token+тunnels, admin UI, me()-after-login fix); Phase 10 Deployment & Docs (`d40e317` deploy-ui.sh, `4b6b4cd` root README). QA on mock API covered login, tokens, connections, logs, admin block round-trip. Final gates: 92 tests green (shared 28, infra 43, cli 21), tsc clean, cdk synth ok, ui build ok. **All 10 phases complete — deploy is user-owned (README walkthrough).**
 
 **Next session commands:**
-1. `/gsd:plan-phase 10` — Deployment & Docs
-2. `/gsd:progress` — current state
+1. `/gsd:progress` — current state
+2. Deploy runbook: `cd infra && cdk bootstrap && ADMIN_IDENTIFIERS=you@example.com cdk deploy`, Route 53 (ACM CNAMEs, apex+wildcard A records), `./scripts/deploy-ui.sh`, `cd cli && npm run build`
