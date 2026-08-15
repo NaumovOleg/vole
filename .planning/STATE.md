@@ -3,14 +3,14 @@
 ## Project Reference
 
 - **Core value:** A solo developer runs `vole http 3000`, receives a public URL, and HTTP requests to that URL reach their local server — pure serverless AWS, no containers.
-- **Current focus:** Phase 6 (CLI Multi-Tunnel & Polish) — code done, integration pending user deploy.
+- **Current focus:** Phase 7 (Dashboard API) — code done, integration pending user deploy.
 
 ## Current Position
 
-**Phase:** 6 — CLI Multi-Tunnel & Polish
-**Plan:** 06-02 — complete (deploy + integration pending user)
-**Status:** Phase done; ready for `/gsd:plan-phase 7`
-**Progress:** [██████░░░░░░░░░░░░░░] 6/10 phases (code complete, deploy pending)
+**Phase:** 7 — Dashboard API
+**Plan:** 07-02 — complete (deploy + integration pending user)
+**Status:** Phase done; ready for `/gsd:plan-phase 8`
+**Progress:** [███████░░░░░░░░░░░░░] 7/10 phases (code complete, deploy pending)
 
 ## Performance Metrics
 
@@ -19,7 +19,7 @@
 | Requirements | 36 v1 |
 | Phases | 10 |
 | Coverage | 36/36 mapped |
-| Plans complete | 18 |
+| Plans complete | 20 |
 
 ## Accumulated Context
 
@@ -78,8 +78,8 @@
 
 ## Session Continuity
 
-**Last session:** 2026-08-15 — Phases 1-6 planned and executed (foundation, auth, WS control plane, HTTP tunnel E2E, TCP & WS tunnels, CLI multi-tunnel & polish); code synth-verified, integration pending user deploy.
+**Last session:** 2026-08-15 — Phases 1-7 planned and executed (foundation, auth, WS control plane, HTTP tunnel E2E, TCP & WS tunnels, CLI multi-tunnel & polish, dashboard API); code synth-verified, integration pending user deploy.
 
 **Next session commands:**
-1. `/gsd:plan-phase 7` — Dashboard API
+1. `/gsd:plan-phase 8` — Dashboard UI
 2. `/gsd:progress` — current state
