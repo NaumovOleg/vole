@@ -289,6 +289,15 @@ async function agentBytesToProxy(client: ApiGatewayManagementApiClient, tunnelRo
   });
 }
 
+function uniqueSubdomain(): string {
+  const DIGITS = 'abcdefghij';
+  const timeLetters = String(Math.floor(Date.now() / 1000))
+    .split('')
+    .map((d) => DIGITS[Number(d)])
+    .join('');
+  return randomUUID().replaceAll('-', '').slice(0, 7) + timeLetters;
+}
+
 async function userIdOfConnection(connectionId: string): Promise<string | undefined> {
   const res = await doc.send(new GetCommand({ TableName: CONNECTIONS_TABLE, Key: { connectionId } }));
   return res.Item?.userId;
@@ -321,37 +330,35 @@ async function openTunnel(client: ApiGatewayManagementApiClient, connectionId: s
     return;
   }
 
-  for (let i = 0; i < 10; i++) {
-    const subdomain = randomUUID().replaceAll('-', '').slice(0, 12);
-    const taken = await doc.send(new GetCommand({ TableName: TUNNELS_TABLE, Key: { subdomain } }));
-    if (taken.Item) continue;
-    try {
-      await doc.send(
-        new PutCommand({
-          TableName: TUNNELS_TABLE,
-          Item: {
-            subdomain,
-            userId,
-            connectionId,
-            type,
-            localPort,
-            createdAt: Date.now(),
-          },
-          ConditionExpression: 'attribute_not_exists(subdomain)',
-        }),
-      );
-      await safePost(
-        client,
-        connectionId,
-        encodeFrame('tunnel-open', frame.id, { subdomain, url: `https://${subdomain}.${DOMAIN}` }),
-      );
+  const subdomain = uniqueSubdomain();
+  try {
+    await doc.send(
+      new PutCommand({
+        TableName: TUNNELS_TABLE,
+        Item: {
+          subdomain,
+          userId,
+          connectionId,
+          type,
+          localPort,
+          createdAt: Date.now(),
+        },
+        ConditionExpression: 'attribute_not_exists(subdomain)',
+      }),
+    );
+    await safePost(
+      client,
+      connectionId,
+      encodeFrame('tunnel-open', frame.id, { subdomain, url: `https://${subdomain}.${DOMAIN}` }),
+    );
+    return;
+  } catch (err: any) {
+    if (err?.name === 'ConditionalCheckFailedException') {
+      await safePost(client, connectionId, encodeFrame('error', frame.id, { error: 'subdomain collision, retry' }));
       return;
-    } catch (err: any) {
-      if (err?.name === 'ConditionalCheckFailedException') continue;
-      throw err;
     }
+    throw err;
   }
-  await safePost(client, connectionId, encodeFrame('error', frame.id, { error: 'no subdomain slots left' }));
 }
 
 async function closeTunnel(client: ApiGatewayManagementApiClient, connectionId: string, frame: any): Promise<void> {
