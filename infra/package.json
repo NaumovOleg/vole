@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "synth": "cdk synth",
-    "deploy": "cdk deploy --require-approval never"
+    "deploy": "cdk deploy --require-approval never",
+    "probe": "bun run scripts/ws-probe.ts"
   },
   "dependencies": {
     "aws-cdk-lib": "^2.190.0",
