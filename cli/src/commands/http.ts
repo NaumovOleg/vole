@@ -1,37 +1,24 @@
-import { loadConfig } from '../config.js';
 import { TunnelSession } from '../tunnel.js';
+import type { TunnelHandle } from '../manager.js';
 import type { HttpRequestPayload, HttpResponsePayload } from '@tunell/shared';
+import { voleServer, voleToken } from '../session.js';
 
-const DEFAULT_SERVER = 'wss://api.vole.sh/dev';
-
-export async function runHttp(args: string[]): Promise<void> {
-  const port = Number(args[0]);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    console.error('usage: vole http <port>');
-    process.exit(2);
-  }
-  const config = loadConfig();
-  if (!config.token) {
-    console.error('no token — run `vole authtoken <token>` first');
-    process.exit(2);
-  }
-
+export function launchHttp(port: number): Promise<TunnelHandle> {
   const session = new TunnelSession({
-    server: config.server ?? DEFAULT_SERVER,
-    token: config.token,
+    server: voleServer(),
+    token: voleToken(),
     type: 'http',
     localPort: port,
     onRequest: (request, reply) => forward(request, reply, port),
   });
+  return session.openPromise.then((info) => ({
+    url: info.url,
+    close: () => session.close(),
+  }));
+}
 
-  const info = await session.openPromise;
-  console.log(`Vole ready: ${info.url}`);
-  console.log(`Forwarding http://localhost:${port} -> ${info.url}`);
-
-  process.on('SIGINT', async () => {
-    await session.close();
-    process.exit(0);
-  });
+export function httpHints(url: string, port: number): string[] {
+  return [`Forwarding http://localhost:${port} -> ${url}`];
 }
 
 async function forward(

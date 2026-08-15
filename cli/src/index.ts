@@ -1,23 +1,20 @@
 import { runAuthtoken } from './commands/authtoken.js';
-import { runHttp } from './commands/http.js';
-import { runTcp } from './commands/tcp.js';
-import { runWs } from './commands/ws.js';
+import { launchHttp, httpHints } from './commands/http.js';
+import { launchTcp, tcpHints } from './commands/tcp.js';
+import { launchWs, wsHints } from './commands/ws.js';
+import { TunnelManager } from './manager.js';
+import { voleToken } from './session.js';
 
-const command = process.argv[2];
-const args = process.argv.slice(3);
+const args = process.argv.slice(2);
 
-switch (command) {
+switch (args[0]) {
   case 'authtoken':
-    runAuthtoken(args);
+    runAuthtoken(args.slice(1));
     break;
   case 'http':
-    runHttp(args);
-    break;
   case 'tcp':
-    runTcp(args);
-    break;
   case 'ws':
-    runWs(args);
+    runTunnels();
     break;
   case undefined:
   case 'help':
@@ -26,9 +23,58 @@ switch (command) {
     printUsage();
     break;
   default:
-    console.error(`unknown command: ${command}`);
+    console.error(`unknown command: ${args[0]}`);
     printUsage();
     process.exit(2);
+}
+
+function runTunnels(): void {
+  const pairs = parsePairs(args);
+  if (!tokenOk()) return;
+  const manager = new TunnelManager();
+  for (const [kind, port] of pairs) {
+    const launch =
+      kind === 'http' ? launchHttp : (p: number) => (kind === 'tcp' ? launchTcp(p) : launchWs(p));
+    const hints = kind === 'http' ? httpHints : kind === 'tcp' ? tcpHints : wsHints;
+    manager.addTunnel({
+      id: `${kind}-${port}`,
+      kind,
+      port,
+      launch: () => launch(port),
+      onReady: (id, handle) => {
+        console.log(`Vole ready: ${handle.url}`);
+        for (const h of hints(handle.url, port)) console.log(h);
+      },
+      onError: (id, err) => console.error(`[${id}] error: ${err.message}`),
+    });
+  }
+  manager.start();
+  process.on('SIGINT', async () => {
+    await manager.closeAll();
+    process.exit(0);
+  });
+}
+
+function tokenOk(): boolean {
+  if (voleToken()) return true;
+  console.error('no token — run `vole authtoken <token>` first');
+  process.exit(2);
+}
+
+function parsePairs(args: string[]): Array<[string, number]> {
+  const pairs: Array<[string, number]> = [];
+  for (let i = 0; i < args.length; i += 2) {
+    const kind = args[i];
+    const raw = args[i + 1];
+    const port = Number(raw);
+    if (!['http', 'tcp', 'ws'].includes(kind) || !Number.isInteger(port) || port < 1 || port > 65535) {
+      console.error(`invalid tunnel spec: ${raw === undefined ? kind : `${kind} ${raw}`}`);
+      printUsage();
+      process.exit(2);
+    }
+    pairs.push([kind, port]);
+  }
+  return pairs;
 }
 
 function printUsage(): void {
@@ -36,13 +82,12 @@ function printUsage(): void {
 
 Usage:
   vole authtoken <token> [wss-server-url]   save your API token
-  vole http <port>                           open an HTTP tunnel to a local server
-  vole tcp <port>                            bridge a TCP port to a local server
-  vole ws <port>                             proxy WebSocket messages to a local server
+  vole <kind> <port> [<kind> <port> ...]    open one or more tunnels
+
+Kinds: http | tcp | ws
 
 Examples:
   vole authtoken vole_abc123 wss://xxxx.execute-api.us-east-1.amazonaws.com/dev
   vole http 3000
-  vole tcp 5432
-  vole ws 8080`);
+  vole http 3000 tcp 5000 ws 8080`);
 }
