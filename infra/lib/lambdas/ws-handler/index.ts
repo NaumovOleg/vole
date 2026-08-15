@@ -321,9 +321,10 @@ async function openTunnel(client: ApiGatewayManagementApiClient, connectionId: s
     return;
   }
 
-  const base = `u-${userId.slice(0, 8)}`;
   for (let i = 0; i < 10; i++) {
-    const subdomain = i === 0 ? base : `${base}-${i}`;
+    const subdomain = randomUUID().replaceAll('-', '').slice(0, 12);
+    const taken = await doc.send(new GetCommand({ TableName: TUNNELS_TABLE, Key: { subdomain } }));
+    if (taken.Item) continue;
     try {
       await doc.send(
         new PutCommand({
