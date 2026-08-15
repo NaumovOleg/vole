@@ -174,6 +174,6 @@ backward success criteria.
 | 5 - TCP & WS Tunnels | Complete (code) |
 | 6 - CLI Multi-Tunnel & Polish | Complete (code) |
 | 7 - Dashboard API | Complete (code) |
-| 8 - Dashboard UI | Pending |
+| 8 - Dashboard UI | Complete (code) |
 | 9 - Admin Panel | Pending |
 | 10 - Deployment & Docs | Pending |

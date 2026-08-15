@@ -3,14 +3,14 @@
 ## Project Reference
 
 - **Core value:** A solo developer runs `vole http 3000`, receives a public URL, and HTTP requests to that URL reach their local server — pure serverless AWS, no containers.
-- **Current focus:** Phase 7 (Dashboard API) — code done, integration pending user deploy.
+- **Current focus:** Phase 8 (Dashboard UI) — code done, mock-QA'd, integration pending user deploy.
 
 ## Current Position
 
-**Phase:** 7 — Dashboard API
-**Plan:** 07-02 — complete (deploy + integration pending user)
-**Status:** Phase done; ready for `/gsd:plan-phase 8`
-**Progress:** [███████░░░░░░░░░░░░░] 7/10 phases (code complete, deploy pending)
+**Phase:** 8 — Dashboard UI
+**Plan:** 08-03 — complete (deploy + integration pending user)
+**Status:** Phase done; ready for `/gsd:plan-phase 9`
+**Progress:** [████████░░░░░░░░░░░░] 8/10 phases (code complete, deploy pending)
 
 ## Performance Metrics
 
@@ -19,7 +19,7 @@
 | Requirements | 36 v1 |
 | Phases | 10 |
 | Coverage | 36/36 mapped |
-| Plans complete | 20 |
+| Plans complete | 24 |
 
 ## Accumulated Context
 
@@ -60,6 +60,12 @@
 - Multi-tunnel: TunnelManager (launch factories → TunnelHandle{url, close}; per-tunnel failure isolation);
   `vole http 3000 tcp 5000 ws 8080` one process; TunnelSession ready timeout 15s (openPromise rejects)
 - Exit codes: 0 clean (SIGINT/SIGTERM → closeAll), 1 runtime, 2 usage/config; errors.ts formatter
+- UI: Vite + React 18, no router (two-screen switch), no UI library — plain dark CSS
+- Token shown ONCE after creation in a highlight box + Copy (navigator.clipboard); Revoke per row
+- Dashboard auto-refresh 10s: paused on hidden tab, no overlap while a request is in flight
+- API base: `VITE_API_URL` env with relative-path fallback (UI could be served from the API domain)
+- Repo quirks: bun put all deps in root `node_modules/` (`ui/node_modules` empty) → `npm run dev`
+  in `ui/` fails; run vite directly: `/Users/oleg/Documents/projects/http-tunell/node_modules/.bin/vite`
 
 ### Technical Constraints
 
@@ -78,8 +84,8 @@
 
 ## Session Continuity
 
-**Last session:** 2026-08-15 — Phases 1-7 planned and executed (foundation, auth, WS control plane, HTTP tunnel E2E, TCP & WS tunnels, CLI multi-tunnel & polish, dashboard API); code synth-verified, integration pending user deploy.
+**Last session:** 2026-08-15 — Phase 8 (Dashboard UI) executed: scaffold + auth screens (`77d5dce`), dashboard panels (`01b1321`), polish/auto-refresh (`30e07d6`). Visual QA against mock API (vite :5174 + mock :8899): login, token create (raw token + Copy + Revoke), connections and logs tables — all rendered correctly. Mock-QA only; live QA needs a real deploy (user-owned).
 
 **Next session commands:**
-1. `/gsd:plan-phase 8` — Dashboard UI
+1. `/gsd:plan-phase 9` — Admin Panel
 2. `/gsd:progress` — current state
