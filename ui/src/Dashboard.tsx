@@ -54,6 +54,13 @@ export default function Dashboard({
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') void load();
+    }, 10_000);
+    return () => clearInterval(timer);
+  }, [load]);
+
   async function createToken() {
     setBusy(true);
     try {
@@ -119,7 +126,7 @@ export default function Dashboard({
                   <td>
                     <code>{t.tokenId.slice(0, 8)}…</code>
                   </td>
-                  <td>{formatTime(t.createdAt)}</td>
+                  <td>{relativeTime(t.createdAt)}</td>
                   <td>
                     <button className="small" onClick={() => revoke(t.tokenId)}>
                       Revoke
@@ -160,7 +167,7 @@ export default function Dashboard({
                   <td>
                     <span className="status active">active</span>
                   </td>
-                  <td>{formatTime(c.createdAt)}</td>
+                  <td title={fullTime(c.createdAt)}>{relativeTime(c.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -192,7 +199,7 @@ export default function Dashboard({
                   <td>{l.status}</td>
                   <td>{l.statusCode ?? ''}</td>
                   <td>{l.latency !== undefined ? `${l.latency}ms` : ''}</td>
-                  <td>{formatTime(l.time)}</td>
+                  <td>{relativeTime(l.time)}</td>
                 </tr>
               ))}
             </tbody>
@@ -203,7 +210,19 @@ export default function Dashboard({
   );
 }
 
-function formatTime(ts?: number): string {
+function relativeTime(ts?: number): string {
   if (!ts) return '';
-  return new Date(ts).toLocaleString();
+  const diff = Date.now() - ts;
+  if (diff < 0) return 'now';
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+function fullTime(ts?: number): string {
+  return ts ? new Date(ts).toLocaleString() : '';
 }
