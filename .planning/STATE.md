@@ -3,14 +3,14 @@
 ## Project Reference
 
 - **Core value:** A solo developer runs `vole http 3000`, receives a public URL, and HTTP requests to that URL reach their local server — pure serverless AWS, no containers.
-- **Current focus:** Phase 8 (Dashboard UI) — code done, mock-QA'd, integration pending user deploy.
+- **Current focus:** Phase 9 (Admin Panel) — code done, mock-QA'd, integration pending user deploy.
 
 ## Current Position
 
-**Phase:** 8 — Dashboard UI
-**Plan:** 08-03 — complete (deploy + integration pending user)
-**Status:** Phase done; ready for `/gsd:plan-phase 9`
-**Progress:** [████████░░░░░░░░░░░░] 8/10 phases (code complete, deploy pending)
+**Phase:** 9 — Admin Panel
+**Plan:** 09-02 — complete (deploy + integration pending user)
+**Status:** Phase done; ready for `/gsd:plan-phase 10`
+**Progress:** [█████████░░░░░░░░░░░] 9/10 phases (code complete, deploy pending)
 
 ## Performance Metrics
 
@@ -19,7 +19,7 @@
 | Requirements | 36 v1 |
 | Phases | 10 |
 | Coverage | 36/36 mapped |
-| Plans complete | 24 |
+| Plans complete | 27 |
 
 ## Accumulated Context
 
@@ -65,7 +65,19 @@
 - Dashboard auto-refresh 10s: paused on hidden tab, no overlap while a request is in flight
 - API base: `VITE_API_URL` env with relative-path fallback (UI could be served from the API domain)
 - Repo quirks: bun put all deps in root `node_modules/` (`ui/node_modules` empty) → `npm run dev`
-  in `ui/` fails; run vite directly: `/Users/oleg/Documents/projects/http-tunell/node_modules/.bin/vite`
+  in `ui/` fails; run vite directly: `/Users/oleg/Documents/projects/http-tunell/node_modules/.bin/vite`.
+  CDK: keep exactly ONE lockfile in repo root — NodejsFunction bundling fails on
+  multiple lock files (bun.lock was removed; package-lock.json tracked)
+- Admin role = env flag `ADMIN_IDENTIFIERS` (csv of identifiers, default `admin@vole.sh`,
+  override: `ADMIN_IDENTIFIERS=...` env at deploy) — no role column/migration;
+  `isAdmin` computed from JWT identifier per request; `me()` returns `role`
+- `/admin/users` (Scan) + `/admin/users/{id}/block|unblock`; block tears down:
+  tokens + tunnel rows (paged BatchWrite), live WS connections
+  (`DeleteConnection`, Gone tolerated — Scan ConnectionsTable, no userIdIndex)
+- WS extra guard: `openTunnel` rejects blocked users (blocked after connect
+  can't open new tunnels); `$connect` already deletes blocked user's token
+- UI: `loadMe()` single source of truth for user + role — runs on mount and
+  after login/register (login response has no identifier)
 
 ### Technical Constraints
 
@@ -84,8 +96,8 @@
 
 ## Session Continuity
 
-**Last session:** 2026-08-15 — Phase 8 (Dashboard UI) executed: scaffold + auth screens (`77d5dce`), dashboard panels (`01b1321`), polish/auto-refresh (`30e07d6`). Visual QA against mock API (vite :5174 + mock :8899): login, token create (raw token + Copy + Revoke), connections and logs tables — all rendered correctly. Mock-QA only; live QA needs a real deploy (user-owned).
+**Last session:** 2026-08-15 — Phase 8 (Dashboard UI): scaffold `77d5dce`, panels `01b1321`, polish `30e07d6`. Phase 9 (Admin Panel): admin API `276166d` (env-flag role, /admin/users, block/unblock with WS kill), admin UI `07f1a2b` (+`5889c30` fix — App now calls me() after login so role/identifier render). Visual QA on mock API: admin sees Users, block round-trip works, non-admin doesn't; 43 tests green, cdk synth ok. Mock-QA only; live QA needs a real deploy (user-owned).
 
 **Next session commands:**
-1. `/gsd:plan-phase 9` — Admin Panel
+1. `/gsd:plan-phase 10` — Deployment & Docs
 2. `/gsd:progress` — current state
