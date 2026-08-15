@@ -133,6 +133,7 @@ export class VoleStack extends Stack {
     });
 
     webSocketApi.grantManageConnections(wsHandler);
+    webSocketApi.grantManageConnections(relayHandler);
 
     const relayUrl = new lambda.FunctionUrl(this, 'RelayFunctionUrl', {
       function: relayHandler,
