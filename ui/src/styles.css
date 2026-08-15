@@ -1,0 +1,144 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: #0f1115;
+  color: #e6e8eb;
+}
+
+.app-loader {
+  padding: 40px;
+  text-align: center;
+  color: #8b919a;
+}
+
+.auth-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-card {
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #171b22;
+  border: 1px solid #262c36;
+  border-radius: 10px;
+  padding: 28px;
+}
+
+.auth-card h1 {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+
+.auth-toggle {
+  display: flex;
+  gap: 6px;
+}
+
+.auth-toggle button {
+  flex: 1;
+  background: #20262f;
+  color: #c6ccd4;
+  border: 1px solid #2c3340;
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.auth-toggle button.active {
+  background: #2b3545;
+  color: #fff;
+}
+
+input {
+  background: #10141a;
+  color: #e6e8eb;
+  border: 1px solid #2c3340;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+button[type='submit'],
+.dash header button {
+  background: #3b6fe0;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+button[type='submit']:disabled {
+  opacity: 0.6;
+}
+
+.error {
+  color: #ff7b72;
+  font-size: 13px;
+}
+
+.dash {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.dash header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dash header h1 {
+  font-size: 20px;
+}
+
+.dash section {
+  margin-top: 24px;
+}
+
+.dash h2 {
+  font-size: 16px;
+  margin: 0 0 10px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #262c36;
+}
+
+th {
+  color: #8b919a;
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+tbody tr:nth-child(even) {
+  background: #14181f;
+}
+
+.empty {
+  color: #8b919a;
+  font-size: 13px;
+  padding: 16px 0;
+}
