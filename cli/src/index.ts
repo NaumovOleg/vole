@@ -1,5 +1,5 @@
-import { runAuthtoken } from './commands/authtoken';
-import { runHttp } from './commands/http';
+import { runAuthtoken } from './commands/authtoken.js';
+import { runHttp } from './commands/http.js';
 
 const command = process.argv[2];
 const args = process.argv.slice(3);

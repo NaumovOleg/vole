@@ -1,4 +1,4 @@
-import { saveConfig } from '../config';
+import { saveConfig } from '../config.js';
 
 export function runAuthtoken(args: string[]): void {
   const token = args[0];
