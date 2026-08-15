@@ -7,7 +7,7 @@ import {
   hashToken,
   normalizeIdentifier,
   validateIdentifier,
-} from './core';
+} from '../lib/lambdas/auth-handler/core';
 
 describe('passwords', () => {
   test('hash differs from plaintext', () => {

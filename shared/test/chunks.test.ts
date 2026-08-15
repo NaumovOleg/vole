@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { CHUNK_SIZE, splitBody, assembleBody } from './chunks';
+import { CHUNK_SIZE, splitBody, assembleBody } from '../src/chunks';
 
 const b64 = (buf: Buffer) => buf.toString('base64');
 

@@ -53,6 +53,10 @@ export class VoleStack extends Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: RemovalPolicy.DESTROY,
     });
+    tunnelsTable.addGlobalSecondaryIndex({
+      indexName: 'userIdIndex',
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+    });
 
     const logsTable = new dynamodb.Table(this, 'LogsTable', {
       partitionKey: { name: 'connectionId', type: dynamodb.AttributeType.STRING },

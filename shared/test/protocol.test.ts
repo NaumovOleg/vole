@@ -11,7 +11,7 @@ import {
   requestFrame,
   responseFrame,
   dataFrame,
-} from './protocol';
+} from '../src/protocol';
 
 describe('frame types', () => {
   test('exactly the contract set', () => {
