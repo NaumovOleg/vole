@@ -1,11 +1,209 @@
-export default function Dashboard({ user, onLogout }: { user: { userId: string; identifier: string }; onLogout: () => void }) {
+import { useCallback, useEffect, useState } from 'react';
+import { api } from './api';
+
+interface Token {
+  tokenId: string;
+  createdAt: number;
+}
+
+interface Connection {
+  subdomain: string;
+  type?: string;
+  localPort?: number;
+  createdAt?: number;
+  status: string;
+}
+
+interface Log {
+  requestId: string;
+  method?: string;
+  path?: string;
+  status?: string;
+  statusCode?: number;
+  latency?: number;
+  time?: number;
+}
+
+export default function Dashboard({
+  user,
+  onLogout,
+}: {
+  user: { userId: string; identifier: string };
+  onLogout: () => void;
+}) {
+  const [tokens, setTokens] = useState<Token[]>([]);
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [freshToken, setFreshToken] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const [t, c, l] = await Promise.all([api.listTokens(), api.connections(), api.logs()]);
+      setTokens(t.tokens ?? []);
+      setConnections(c.connections ?? []);
+      setLogs(l.logs ?? []);
+      setError('');
+    } catch (err: any) {
+      setError(err.message ?? String(err));
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function createToken() {
+    setBusy(true);
+    try {
+      const d = await api.createToken();
+      setFreshToken(d.token);
+      await load();
+    } catch (err: any) {
+      setError(err.message ?? String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function revoke(tokenId: string) {
+    try {
+      await api.revokeToken(tokenId);
+      await load();
+    } catch (err: any) {
+      setError(err.message ?? String(err));
+    }
+  }
+
   return (
     <div className="dash">
       <header>
         <h1>Vole — {user.identifier}</h1>
         <button onClick={onLogout}>Log out</button>
       </header>
-      <p>Dashboard (phase 08-02).</p>
+
+      {error && <div className="error banner">{error}</div>}
+
+      <section>
+        <h2>API tokens</h2>
+        <button onClick={createToken} disabled={busy}>
+          {busy ? '…' : 'Create token'}
+        </button>
+        {freshToken && (
+          <div className="fresh-token">
+            <code>{freshToken}</code>
+            <button
+              onClick={() => {
+                void navigator.clipboard.writeText(freshToken);
+              }}
+            >
+              Copy
+            </button>
+          </div>
+        )}
+        {tokens.length === 0 ? (
+          <p className="empty">No tokens yet — create one to use with the CLI.</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Token</th>
+                <th>Created</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {tokens.map((t) => (
+                <tr key={t.tokenId}>
+                  <td>
+                    <code>{t.tokenId.slice(0, 8)}…</code>
+                  </td>
+                  <td>{formatTime(t.createdAt)}</td>
+                  <td>
+                    <button className="small" onClick={() => revoke(t.tokenId)}>
+                      Revoke
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      <section>
+        <h2>Connections</h2>
+        {connections.length === 0 ? (
+          <p className="empty">No active tunnels — run `vole http 3000` from the CLI.</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Subdomain</th>
+                <th>Type</th>
+                <th>Local port</th>
+                <th>Status</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              {connections.map((c) => (
+                <tr key={c.subdomain}>
+                  <td>
+                    <a href={`https://${c.subdomain}.vole.sh`} target="_blank" rel="noreferrer">
+                      {c.subdomain}
+                    </a>
+                  </td>
+                  <td>{c.type}</td>
+                  <td>{c.localPort}</td>
+                  <td>
+                    <span className="status active">active</span>
+                  </td>
+                  <td>{formatTime(c.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      <section>
+        <h2>Request logs</h2>
+        {logs.length === 0 ? (
+          <p className="empty">No requests logged yet.</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Method</th>
+                <th>Path</th>
+                <th>Status</th>
+                <th>Code</th>
+                <th>Latency</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((l) => (
+                <tr key={l.requestId}>
+                  <td>{l.method}</td>
+                  <td>{l.path}</td>
+                  <td>{l.status}</td>
+                  <td>{l.statusCode ?? ''}</td>
+                  <td>{l.latency !== undefined ? `${l.latency}ms` : ''}</td>
+                  <td>{formatTime(l.time)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
     </div>
   );
+}
+
+function formatTime(ts?: number): string {
+  if (!ts) return '';
+  return new Date(ts).toLocaleString();
 }
