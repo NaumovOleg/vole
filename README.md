@@ -61,7 +61,7 @@ Builds the dashboard, syncs it to S3 and invalidates CloudFront.
 Anywhere (published to npm by CI):
 
 ```bash
-sudo npm i -g @tunell/vole
+sudo npm i -g vole-tunell
 ```
 
 From the repo (development):
@@ -83,7 +83,7 @@ TCP/WS tunnels attach as real sockets: `websocat wss://api.vole.sh/dev?tunnel=<s
 
 `.github/workflows/deploy.yml` runs on pushes to `main`: check (tests + synth),
 then — only when `v<version>` (from `cli/package.json`) is NOT tagged yet —
-`cdk deploy`, UI deploy, `npm publish` of `@tunell/vole`, and the release tag.
+`cdk deploy`, UI deploy, `npm publish` of `vole-tunell`, and the release tag.
 Bump the version and push to release: `npm version patch -w cli && git push`.
 
 | Setting | Value |

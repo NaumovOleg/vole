@@ -1,6 +1,6 @@
 name: Deploy to AWS
 
-# Push to main -> check, deploy AWS, publish @tunell/vole — but only while the
+# Push to main -> check, deploy AWS, publish vole-tunell — but only while the
 # version in cli/package.json is NOT yet tagged: bump the version (e.g.
 # `npm version patch -w cli`), commit and push; CI deploys + publishes + tags
 # it. A docs/refactor push that didn't bump the version does nothing.
@@ -119,7 +119,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
         run: npm ci
-      - name: Publish @tunell/vole
+      - name: Publish vole-tunell
         if: secrets.NPM_TOKEN != ''
         run: npm publish -w cli --access public --provenance --tag latest
         env:
