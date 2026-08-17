@@ -220,7 +220,7 @@ export class VoleStack extends Stack {
       api: webSocketApi,
       domainName: wsDomainName,
       stage: webSocketStage,
-      apiMappingKey: '/dev',
+      apiMappingKey: 'dev',
     });
 
     const uiDistribution = new cloudfront.Distribution(this, 'UiDistribution', {
