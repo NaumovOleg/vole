@@ -73,6 +73,23 @@ vole http 3000 tcp 5000 ws 8080               # several tunnels in one process
 
 TCP/WS tunnels attach as real sockets: `websocat wss://api.vole.sh/dev?tunnel=<subdomain>` (or any WebSocket client).
 
+## CI/CD
+
+`.github/workflows/deploy.yml` deploys on every push to `main` (tests → synth →
+`cdk deploy` → UI). Set up in the GitHub repo:
+
+| Setting | Value |
+|---------|-------|
+| Secret `AWS_ACCESS_KEY_ID` | IAM user access key (see below) |
+| Secret `AWS_SECRET_ACCESS_KEY` | matching secret key |
+| Secret `ADMIN_IDENTIFIERS` | admin emails/phones (comma-separated; default `admin@vole.sh`) |
+| Variable `AWS_REGION` | deploy region (default `us-east-1`) |
+
+The IAM user needs `AdministratorAccess` (or scoped: CloudFormation, S3,
+CloudFront, Lambda, DynamoDB, API Gateway, Secrets Manager, Route 53, ACM).
+DNS records (Route 53/APEX) still need a one-time manual setup after the first
+deploy — see "2. DNS" above.
+
 ## Walkthrough
 
 1. Open `https://vole.sh` → register (email or phone + password)
