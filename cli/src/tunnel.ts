@@ -65,12 +65,10 @@ export class TunnelSession {
     this.ws.onclose = () => {
       this.stopHeartbeat();
       this.openReject?.(new Error(`connection to ${opts.server} closed`));
-      console.error('connection closed');
     };
 
-    this.ws.onerror = (err: any) => {
+    this.ws.onerror = () => {
       this.openReject?.(new Error(`cannot reach ${opts.server} — check your network or config`));
-      console.error('connection error:', err?.message ?? err);
     };
   }
 
