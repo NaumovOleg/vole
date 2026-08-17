@@ -14,14 +14,14 @@ browser ──> https://<subdomain>.vole.sh ──> CloudFront ──> relay Lam
 
 ## Architecture
 
-| Component | Where | Role |
-|-----------|-------|------|
-| WS API Gateway + Lambda (`ws-handler`) | `infra/lib/lambdas/ws-handler/` | CLI control plane: auth via token, tunnels, byte routing for tcp/ws |
-| Relay Lambda (streaming URL) | `infra/lib/lambdas/relay-handler/` | HTTP requests: subdomain → tunnel → agent response (300ms poll, 504 on timeout); serves `*.vole.sh` via CloudFront |
-| Auth REST Lambda | `infra/lib/lambdas/auth-handler/` | JWT auth, `/tokens` CRUD, `/connections`, `/logs`, `/admin/*` |
-| DynamoDB | 5 tables | users, tokens, connections, tunnels, logs (TTL'd) |
-| UI | `ui/` (React, S3 + CloudFront apex) | dashboard: tokens, connections, logs, admin panel |
-| CLI | `cli/` (Bun, single-file bundle) | `vole http|tcp|ws <port>`, multi-tunnel |
+| Component                              | Where                               | Role                                                                                                               |
+| -------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------ | --- | ------------------------ |
+| WS API Gateway + Lambda (`ws-handler`) | `infra/lib/lambdas/ws-handler/`     | CLI control plane: auth via token, tunnels, byte routing for tcp/ws                                                |
+| Relay Lambda (streaming URL)           | `infra/lib/lambdas/relay-handler/`  | HTTP requests: subdomain → tunnel → agent response (300ms poll, 504 on timeout); serves `*.vole.sh` via CloudFront |
+| Auth REST Lambda                       | `infra/lib/lambdas/auth-handler/`   | JWT auth, `/tokens` CRUD, `/connections`, `/logs`, `/admin/*`                                                      |
+| DynamoDB                               | 5 tables                            | users, tokens, connections, tunnels, logs (TTL'd)                                                                  |
+| UI                                     | `ui/` (React, S3 + CloudFront apex) | dashboard: tokens, connections, logs, admin panel                                                                  |
+| CLI                                    | `cli/` (Bun, single-file bundle)    | `vole http                                                                                                         | tcp | ws <port>`, multi-tunnel |
 
 ## Prerequisites
 
@@ -86,13 +86,13 @@ then — only when `v<version>` (from `cli/package.json`) is NOT tagged yet —
 `cdk deploy`, UI deploy, `npm publish` of `vole-tunell`, and the release tag.
 Bump the version and push to release: `npm version patch -w cli && git push`.
 
-| Setting | Value |
-|---------|-------|
-| Secret `AWS_ACCESS_KEY_ID` | IAM user access key (see below) |
-| Secret `AWS_SECRET_ACCESS_KEY` | matching secret key |
-| Secret `NPM_TOKEN` | npm registry token with **publish** rights (`npm token create --type automation`) |
-| Secret `ADMIN_IDENTIFIERS` | admin emails/phones (comma-separated; default `admin@vole.sh`) |
-| Variable `AWS_REGION` | deploy region (default `us-east-1`) |
+| Setting                        | Value                                                                             |
+| ------------------------------ | --------------------------------------------------------------------------------- |
+| Secret `AWS_ACCESS_KEY_ID`     | IAM user access key (see below)                                                   |
+| Secret `AWS_SECRET_ACCESS_KEY` | matching secret key                                                               |
+| Secret `NPM_TOKEN`             | npm registry token with **publish** rights (`npm token create --type automation`) |
+| Secret `ADMIN_IDENTIFIERS`     | admin emails/phones (comma-separated; default `admin@vole.sh`)                    |
+| Variable `AWS_REGION`          | deploy region (default `eu-west-1`)                                               |
 
 `NPM_TOKEN` is optional — without it CI deploys AWS but skips publishing.
 The IAM user needs `AdministratorAccess` (or scoped: CloudFormation, S3,
