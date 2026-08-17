@@ -58,7 +58,13 @@ Builds the dashboard, syncs it to S3 and invalidates CloudFront.
 
 ### 4. CLI
 
-From the repo (npm publishing comes later):
+Anywhere (published to npm by CI):
+
+```bash
+sudo npm i -g @tunell/vole
+```
+
+From the repo (development):
 
 ```bash
 cd cli && npm run build       # → cli/dist/vole.js
@@ -75,16 +81,20 @@ TCP/WS tunnels attach as real sockets: `websocat wss://api.vole.sh/dev?tunnel=<s
 
 ## CI/CD
 
-`.github/workflows/deploy.yml` deploys on every push to `main` (tests → synth →
-`cdk deploy` → UI). Set up in the GitHub repo:
+`.github/workflows/deploy.yml` runs on pushes to `main`: check (tests + synth),
+then — only when `v<version>` (from `cli/package.json`) is NOT tagged yet —
+`cdk deploy`, UI deploy, `npm publish` of `@tunell/vole`, and the release tag.
+Bump the version and push to release: `npm version patch -w cli && git push`.
 
 | Setting | Value |
 |---------|-------|
 | Secret `AWS_ACCESS_KEY_ID` | IAM user access key (see below) |
 | Secret `AWS_SECRET_ACCESS_KEY` | matching secret key |
+| Secret `NPM_TOKEN` | npm registry token with **publish** rights (`npm token create --type automation`) |
 | Secret `ADMIN_IDENTIFIERS` | admin emails/phones (comma-separated; default `admin@vole.sh`) |
 | Variable `AWS_REGION` | deploy region (default `us-east-1`) |
 
+`NPM_TOKEN` is optional — without it CI deploys AWS but skips publishing.
 The IAM user needs `AdministratorAccess` (or scoped: CloudFormation, S3,
 CloudFront, Lambda, DynamoDB, API Gateway, Secrets Manager, Route 53, ACM).
 DNS records (Route 53/APEX) still need a one-time manual setup after the first

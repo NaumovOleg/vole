@@ -1,5 +1,5 @@
 {
-  "name": "vole",
+  "name": "@tunell/vole",
   "version": "0.1.0",
   "description": "Self-hosted HTTP tunnel client (ngrok alternative on AWS)",
   "type": "module",
@@ -13,10 +13,8 @@
     "build": "bun build src/index.ts --target=node --outfile dist/vole.js --banner \"#!/usr/bin/env node\"",
     "prepack": "npm run build"
   },
-  "dependencies": {
-    "@tunell/shared": "*"
-  },
   "devDependencies": {
+    "@tunell/shared": "*",
     "typescript": "^5.0.0"
   }
 }

@@ -1,5 +1,18 @@
 name: Deploy to AWS
 
+# Push to main -> check, deploy AWS, publish @tunell/vole — but only while the
+# version in cli/package.json is NOT yet tagged: bump the version (e.g.
+# `npm version patch -w cli`), commit and push; CI deploys + publishes + tags
+# it. A docs/refactor push that didn't bump the version does nothing.
+# Version is chosen by the developer, never by CI.
+#
+# Secrets/variables (repo or Environment "production"):
+#   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY (AWS deploy)
+#   ADMIN_IDENTIFIERS (admin emails/phones, optional)
+#   AWS_REGION (optional, default us-east-1)
+#   NPM_TOKEN (npm registry token with publish rights, optional — skip publish
+#              if not set)
+
 on:
   push:
     branches: [main]
@@ -9,12 +22,17 @@ env:
   AWS_DEFAULT_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
 
 concurrency:
-  group: deploy
+  group: deploy-${{ github.ref }}
   cancel-in-progress: false
+
+permissions:
+  contents: write # tag + push the release tag
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -36,8 +54,31 @@ jobs:
         run: npx cdk synth --quiet
         working-directory: infra
 
+  # One gate for both jobs: deploy + publish only when v<version> is not tagged.
+  release-gate:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.gate.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Decide whether to release
+        id: gate
+        run: |
+          VER=$(node -p "require('./cli/package.json').version")
+          git fetch --tags --quiet
+          if git rev-parse -q --verify "refs/tags/v$VER" >/dev/null; then
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "v$VER already tagged — skip deploy + publish."
+          else
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            echo "v$VER not yet released — deploy + publish."
+          fi
+
   deploy:
-    needs: check
+    needs: [check, release-gate]
+    if: needs.release-gate.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -61,3 +102,32 @@ jobs:
         working-directory: infra
       - name: Deploy UI (build -> S3 -> CloudFront invalidation)
         run: bash scripts/deploy-ui.sh
+
+  publish-cli:
+    needs: [check, release-gate]
+    if: needs.release-gate.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need existing tags to skip an already-published version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: npm ci
+      - name: Publish @tunell/vole
+        if: secrets.NPM_TOKEN != ''
+        run: npm publish -w cli --access public --provenance --tag latest
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Tag the release
+        run: |
+          VER=$(node -p "require('./cli/package.json').version")
+          git config user.email "ci@vole.sh"
+          git config user.name "vole ci"
+          git tag "v$VER"
+          git push origin "v$VER"
