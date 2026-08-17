@@ -108,7 +108,7 @@ jobs:
         run: bash scripts/deploy-ui.sh
 
   publish-cli:
-    needs: [check, release-gate]
+    needs: [check, release-gate, deploy]
     if: needs.release-gate.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     environment: production
