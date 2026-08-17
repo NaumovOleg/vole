@@ -126,8 +126,6 @@ export class VoleStack extends Stack {
       disconnectRouteOptions: { integration: new WebSocketLambdaIntegration('DisconnectIntegration', wsHandler) },
       defaultRouteOptions: { integration: new WebSocketLambdaIntegration('DefaultIntegration', wsHandler) },
     });
-    const cfnWebSocketApi = webSocketApi.node.findChild('Resource') as apigwv2.CfnApi;
-    cfnWebSocketApi.addPropertyOverride('BinaryMediaTypes', ['application/octet-stream']);
 
     new apigwv2.WebSocketStage(this, 'WebSocketStage', {
       webSocketApi,
