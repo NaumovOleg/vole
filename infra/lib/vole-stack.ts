@@ -205,9 +205,16 @@ export class VoleStack extends Stack {
         })(),
     );
 
+    // API Gateway V2 custom domains need a certificate in the stack's own
+    // region — create it here (DNS validation via the same hosted zone).
+    const wsCertificate = new acm.Certificate(this, 'WsCertificate', {
+      domainName: 'api.vole.free-bert.online',
+      validation: zone ? acm.CertificateValidation.fromDns(zone) : acm.CertificateValidation.fromDns(),
+    });
+
     const wsDomainName = new apigwv2.DomainName(this, 'WsDomainName', {
       domainName: 'api.vole.free-bert.online',
-      certificate,
+      certificate: wsCertificate,
     });
     new apigwv2.ApiMapping(this, 'WsApiMapping', {
       api: webSocketApi,
