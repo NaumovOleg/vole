@@ -237,10 +237,7 @@ export class VoleStack extends Stack {
       certificate,
       domainNames: [`*.${domain}`],
       defaultBehavior: {
-        origin: new origins.HttpOrigin(
-          relayUrl.url.replace(/^https?:\/\//, '').replace(/\/$/, ''),
-          { protocolPolicy: cloudfront.OriginProtocolPolicy.HTTPS_ONLY },
-        ),
+        origin: new origins.FunctionUrlOrigin(relayUrl),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       },
     });
