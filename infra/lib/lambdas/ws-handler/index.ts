@@ -17,7 +17,7 @@ const TUNNELS_TABLE = process.env.TUNNELS_TABLE!;
 const LOGS_TABLE = process.env.LOGS_TABLE!;
 
 const TTL_MS = 12 * 3600 * 1000;
-const DOMAIN = process.env.DOMAIN ?? 'vole.sh';
+const DOMAIN = process.env.DOMAIN ?? 'vole.free-bert.online';
 
 const seqByAgent = new Map<string, number>();
 

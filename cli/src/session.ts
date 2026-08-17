@@ -1,6 +1,6 @@
 import { loadConfig } from './config.js';
 
-const DEFAULT_SERVER = 'wss://api.vole.sh/dev';
+const DEFAULT_SERVER = 'wss://api.vole.free-bert.online/dev';
 
 export function voleServer(): string {
   return loadConfig().server ?? DEFAULT_SERVER;

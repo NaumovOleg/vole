@@ -185,7 +185,7 @@ export default function Dashboard({
               {connections.map((c) => (
                 <tr key={c.subdomain}>
                   <td>
-                    <a href={`https://${c.subdomain}.vole.sh`} target="_blank" rel="noreferrer">
+                    <a href={`https://${c.subdomain}.${window.location.hostname}`} target="_blank" rel="noreferrer">
                       {c.subdomain}
                     </a>
                   </td>

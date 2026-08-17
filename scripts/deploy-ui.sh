@@ -22,4 +22,4 @@ npm --prefix ui run build
 aws s3 sync ui/dist "s3://$BUCKET" --delete
 aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths '/*' > /dev/null
 
-echo "UI deployed: https://vole.sh (wait for the invalidation to propagate)"
+echo "UI deployed: https://vole.free-bert.online (wait for the invalidation to propagate)"

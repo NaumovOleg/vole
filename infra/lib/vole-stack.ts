@@ -8,6 +8,8 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 
@@ -15,7 +17,17 @@ export class VoleStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    const domain = 'vole.sh';
+    const domain = 'vole.free-bert.online';
+
+    // Route 53 zone import by ID (set HOSTED_ZONE_ID in CI to make CDK create
+    // the ACM validation CNAME and the alias records automatically)
+    const hostedZoneId = process.env.HOSTED_ZONE_ID;
+    const zone = hostedZoneId
+      ? route53.HostedZone.fromHostedZoneAttributes(this, 'Zone', {
+          hostedZoneId,
+          zoneName: domain.replace(/^[^.]+\./, ''),
+        })
+      : undefined;
 
     const usersTable = new dynamodb.Table(this, 'UsersTable', {
       partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
@@ -72,6 +84,7 @@ export class VoleStack extends Stack {
       CONNECTIONS_TABLE: connectionsTable.tableName,
       TUNNELS_TABLE: tunnelsTable.tableName,
       LOGS_TABLE: logsTable.tableName,
+      DOMAIN: domain,
     };
 
     const jwtSecret = new secretsmanager.Secret(this, 'JwtSecret', {
@@ -107,7 +120,7 @@ export class VoleStack extends Stack {
       environment: {
         ...commonEnv,
         JWT_SECRET_ARN: jwtSecret.secretArn,
-        ADMIN_IDENTIFIERS: process.env.ADMIN_IDENTIFIERS ?? 'admin@vole.sh',
+        ADMIN_IDENTIFIERS: process.env.ADMIN_IDENTIFIERS ?? 'keeperoleg26@gmail.com',
       },
       timeout: Duration.seconds(30),
       bundling: { externalModules: ['@aws-sdk/*'] },
@@ -127,7 +140,7 @@ export class VoleStack extends Stack {
       defaultRouteOptions: { integration: new WebSocketLambdaIntegration('DefaultIntegration', wsHandler) },
     });
 
-    new apigwv2.WebSocketStage(this, 'WebSocketStage', {
+    const webSocketStage = new apigwv2.WebSocketStage(this, 'WebSocketStage', {
       webSocketApi,
       stageName: 'dev',
       autoDeploy: true,
@@ -186,7 +199,18 @@ export class VoleStack extends Stack {
     const certificate = new acm.Certificate(this, 'Certificate', {
       domainName: domain,
       subjectAlternativeNames: [`*.${domain}`],
-      validation: acm.CertificateValidation.fromDns(),
+      validation: zone ? acm.CertificateValidation.fromDns(zone) : acm.CertificateValidation.fromDns(),
+    });
+
+    const wsDomainName = new apigwv2.DomainName(this, 'WsDomainName', {
+      domainName: 'api.vole.free-bert.online',
+      certificate,
+    });
+    new apigwv2.ApiMapping(this, 'WsApiMapping', {
+      api: webSocketApi,
+      domainName: wsDomainName,
+      stage: webSocketStage,
+      apiMappingKey: '/dev',
     });
 
     const uiDistribution = new cloudfront.Distribution(this, 'UiDistribution', {
@@ -221,6 +245,27 @@ export class VoleStack extends Stack {
       },
     });
 
+    if (zone) {
+      new route53.ARecord(this, 'UiAlias', {
+        zone,
+        recordName: 'vole',
+        target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(uiDistribution)),
+      });
+      new route53.ARecord(this, 'TunnelWildcardAlias', {
+        zone,
+        recordName: '*.vole',
+        target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(tunnelDistribution)),
+      });
+      new route53.ARecord(this, 'WsApiAlias', {
+        zone,
+        recordName: 'api.vole',
+        target: route53.RecordTarget.fromAlias(
+          new targets.ApiGatewayv2DomainProperties(wsDomainName.regionalDomainName, wsDomainName.regionalHostedZoneId),
+        ),
+      });
+    }
+
+    new CfnOutput(this, 'WsApiDomain', { value: wsDomainName.name });
     new CfnOutput(this, 'WebSocketUrl', { value: webSocketApi.apiEndpoint });
     new CfnOutput(this, 'HttpApiUrl', { value: httpStage.url });
     new CfnOutput(this, 'RelayUrl', { value: relayUrl.url });

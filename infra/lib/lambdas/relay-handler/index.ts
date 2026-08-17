@@ -13,7 +13,7 @@ const TUNNELS_TABLE = process.env.TUNNELS_TABLE!;
 const CONNECTIONS_TABLE = process.env.CONNECTIONS_TABLE!;
 const LOGS_TABLE = process.env.LOGS_TABLE!;
 
-const DOMAIN = process.env.DOMAIN ?? 'vole.sh';
+const DOMAIN = process.env.DOMAIN ?? 'vole.free-bert.online';
 const MAX_BODY = 10 * 1024 * 1024;
 const POLL_INTERVAL_MS = 300;
 const POLL_TIMEOUT_MS = 30_000;

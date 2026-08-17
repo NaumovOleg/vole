@@ -83,7 +83,8 @@ jobs:
     permissions:
       contents: read
     env:
-      ADMIN_IDENTIFIERS: ${{ secrets.ADMIN_IDENTIFIERS || 'admin@vole.sh' }}
+      ADMIN_IDENTIFIERS: ${{ secrets.ADMIN_IDENTIFIERS || 'keeperoleg26@gmail.com' }}
+      HOSTED_ZONE_ID: ${{ vars.HOSTED_ZONE_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
