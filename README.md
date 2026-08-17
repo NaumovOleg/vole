@@ -93,6 +93,7 @@ Bump the version and push to release: `npm version patch -w cli && git push`.
 | Secret `NPM_TOKEN`             | npm registry token with **publish** rights (`npm token create --type automation`) |
 | Secret `ADMIN_IDENTIFIERS`     | admin emails/phones (comma-separated; default `keeperoleg26@gmail.com`)           |
 | Variable `HOSTED_ZONE_ID`      | Route 53 zone ID (`Z...`) — CDK then creates ACM validation CNAME + `vole.`/`*.vole.` alias records automatically |
+| Variable `CERT_ARN`            | ARN of an ACM certificate in **us-east-1** for `vole.free-bert.online` + `*.vole.free-bert.online` (CloudFront requires us-east-1; create manually via ACM → DNS validation → wait for Issued) |
 | Variable `AWS_REGION`          | deploy region (default `eu-west-1`)                                               |
 
 `NPM_TOKEN` is optional — without it CI deploys AWS but skips publishing.

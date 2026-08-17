@@ -196,11 +196,14 @@ export class VoleStack extends Stack {
       autoDeleteObjects: true,
     });
 
-    const certificate = new acm.Certificate(this, 'Certificate', {
-      domainName: domain,
-      subjectAlternativeNames: [`*.${domain}`],
-      validation: zone ? acm.CertificateValidation.fromDns(zone) : acm.CertificateValidation.fromDns(),
-    });
+    const certificate = acm.Certificate.fromCertificateArn(
+      this,
+      'Certificate',
+      process.env.CERT_ARN ??
+        (() => {
+          throw new Error('CERT_ARN env is required: ACM certificate ARN in us-east-1 (create manually + validate DNS first)');
+        })(),
+    );
 
     const wsDomainName = new apigwv2.DomainName(this, 'WsDomainName', {
       domainName: 'api.vole.free-bert.online',
