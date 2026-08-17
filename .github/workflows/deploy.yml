@@ -33,6 +33,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      CERT_ARN: ${{ vars.CERT_ARN }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
