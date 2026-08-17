@@ -108,6 +108,8 @@ jobs:
     if: needs.release-gate.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     environment: production
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -120,7 +122,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Publish vole-tunell
-        if: secrets.NPM_TOKEN != ''
+        if: env.NPM_TOKEN != ''
         run: npm publish -w cli --access public --provenance --tag latest
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
